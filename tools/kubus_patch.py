@@ -176,29 +176,34 @@ def find_script_context(movie):
 
 OP = {
     "ret": 0x01, "pushzero": 0x03, "mul": 0x04, "add": 0x05, "sub": 0x06, "div": 0x07,
-    "lt": 0x0c, "eq": 0x0f, "gt": 0x10, "gteq": 0x11, "and": 0x12, "or": 0x13, "not": 0x14,
+    "inv": 0x09, "lt": 0x0c, "eq": 0x0f, "containsstr": 0x15, "gt": 0x10, "gteq": 0x11, "and": 0x12, "or": 0x13, "not": 0x14,
     "pushlist": 0x1e,
     "pushint": 0x41, "pusharglistnoret": 0x42, "pusharglist": 0x43, "pushcons": 0x44,
     "pushsymb": 0x45,
-    "getglobal": 0x49, "getlocal": 0x4c, "setglobal": 0x4f, "setlocal": 0x52,
-    "jmp": 0x53, "endrepeat": 0x54, "jmpifz": 0x55, "extcall": 0x57,
+    "getglobal": 0x49, "getprop": 0x4a, "getparam": 0x4b, "getlocal": 0x4c, "setglobal": 0x4f, "setlocal": 0x52,
+    "setprop": 0x50, "jmp": 0x53, "endrepeat": 0x54, "jmpifz": 0x55, "extcall": 0x57,
     "getmovieprop": 0x5f, "setmovieprop": 0x60, "getobjprop": 0x61, "setobjprop": 0x62,
-    "thebuiltin": 0x66, "objcall": 0x67,
+    "thebuiltin": 0x66, "objcall": 0x67, "getchainedprop": 0x70,
 }
 NAME_ARG = {"getglobal", "setglobal", "extcall", "getmovieprop", "setmovieprop",
-            "getobjprop", "setobjprop", "objcall", "thebuiltin", "pushsymb"}
+            "getobjprop", "setobjprop", "objcall", "thebuiltin", "pushsymb",
+            "getprop", "setprop", "getchainedprop"}
 JUMPS = {"jmp", "jmpifz", "endrepeat"}
 
 
-def assemble(program, names, literals):
+def assemble(program, names, literals, locals_=None, base=0):
     """program: krotki (op[, arg]) i etykiety ("label", nazwa).
 
     Zwraca (bytecode, lista nazw zmiennych lokalnych); napisy z "pushcons" trafiają
     do wspólnej listy `literals` skryptu. W tym filmie indeksy zmiennych lokalnych
     i literałów są zapisywane wprost (bez mnożnika) - sprawdzone na oryginalnym
     bytecode.
+
+    `locals_` pozwala dopisać kod do istniejącego handlera (nowe zmienne trafiają
+    na koniec jego listy), `base` to pozycja kodu w handlerze. Cel skoku może być
+    etykietą albo liczbą - bezwzględną pozycją w handlerze.
     """
-    locals_ = []
+    locals_ = [] if locals_ is None else locals_
 
     def width_for(op, arg):
         if arg is None:
@@ -251,10 +256,11 @@ def assemble(program, names, literals):
         if item[0] == "label":
             continue
         op, arg = item
-        if op in ("jmp", "jmpifz"):
-            arg = labels[arg] - len(code)
-        elif op == "endrepeat":
-            arg = len(code) - labels[arg]
+        if op in JUMPS:
+            target = arg if isinstance(arg, int) else base + labels[arg]
+            here = base + len(code)
+            arg = here - target if op == "endrepeat" else target - here
+            assert arg >= 0, "skok wstecz wymaga endrepeat"
         code += encode(op, arg)
     return bytes(code), locals_
 
@@ -506,8 +512,112 @@ def single_handler_code(blob):
     return blob[g("I", rec + 8):g("I", rec + 8) + g("I", rec + 4)]
 
 
+def handler_record(blob, index):
+    return struct.unpack_from(">I", blob, 74)[0] + HANDLER_SIZE * index
+
+
+def jump_fix_patches():
+    """Poprawka "podwójnego wybicia" przy skoku na wyższą platformę.
+
+    Gra co klatkę ustawia Kubusia na wysokości podłoża pod nim + 35, a w trakcie skoku
+    dodaje do tego łuk `skok`. Gdy w locie Kubuś znajdzie się nad wyższą platformą,
+    łuk zaczyna się liczyć od nowego podłoża i postać wybija się drugi raz.
+    Poprawka zapamiętuje wysokość startu skoku (kfJumpBase) i dopóki podłoże jest
+    co najmniej na tej wysokości, prowadzi postać po łuku liczonym od startu,
+    a na platformie ląduje, gdy łuk zejdzie do jej poziomu. Na płaskim terenie i przy
+    zeskoku w dół zachowanie jest identyczne z oryginałem.
+
+    Zwraca listę (oryginalny fragment, poprzedzający kontekst, nowy kod - funkcja
+    od pozycji powrotu).
+    """
+    model_pos = [("getprop", "pModel"), ("getchainedprop", "transform"),
+                 ("getchainedprop", "position")]
+    start_orig = [("pushint", 90), ("inv",), ("setprop", "jumped")]
+    start_ctx = [("getprop", "jumped"), ("pushint", 91), ("inv",), ("eq",)]
+
+    def start_new(ret):
+        return start_orig + model_pos + [("getobjprop", "z"), ("setglobal", "kfJumpBase"),
+                                         ("endrepeat", ret)]
+
+    height_orig = model_pos + model_pos + [("getobjprop", "z"), ("getlocal", "skok"),
+                                           ("add",), ("setobjprop", "z")]
+
+    def height_new(ret):
+        return model_pos + [
+            ("getobjprop", "z"), ("setlocal", "kfG"),
+            # if kfG >= kfJumpBase then (podłoże na wysokości startu lub wyżej)
+            ("getlocal", "kfG"), ("getglobal", "kfJumpBase"), ("gteq",), ("jmpifz", "down"),
+            ("getglobal", "kfJumpBase"), ("getlocal", "skok"), ("add",), ("setlocal", "kfT"),
+            #   if kfT > kfG then z = kfT   (inaczej Kubuś stoi już na platformie)
+            ("getlocal", "kfT"), ("getlocal", "kfG"), ("gt",), ("jmpifz", "done"),
+        ] + model_pos + [
+            ("getlocal", "kfT"), ("setobjprop", "z"),
+            ("jmp", "done"),
+            ("label", "down"),
+            # else: jak w oryginale, z = podłoże + skok
+        ] + model_pos + [
+            ("getlocal", "kfG"), ("getlocal", "skok"), ("add",), ("setobjprop", "z"),
+            ("label", "done"),
+            ("endrepeat", ret),
+        ]
+
+    return [(start_orig, start_ctx, start_new), (height_orig, None, height_new)]
+
+
+def fix_jump(movie, names, scripts):
+    """Dopisuje poprawkę skoku do handlera stepFrame skryptu Kubusia."""
+    owners = [s for s in scripts
+              if {"stepframe", "calc_coins", "calc_carrots"} <= set(handler_names(movie.chunk(s), names.names))]
+    if len(owners) != 1:
+        raise SystemExit("Nie znaleziono skryptu sterowania Kubusiem")
+    blob = bytearray(movie.chunk(owners[0]))
+    g = lambda fmt, off: struct.unpack_from(">" + fmt, blob, off)[0]
+    index = handler_names(blob, names.names).index("stepframe")
+    rec = handler_record(blob, index)
+    code_len, code_off = g("I", rec + 4), g("I", rec + 8)
+    loc_count, loc_off = g("H", rec + 18), g("I", rec + 20)
+    code = bytearray(blob[code_off:code_off + code_len])
+    local_names = [names.names[g("h", loc_off + 2 * i)] for i in range(loc_count)]
+
+    for original, context, build in jump_fix_patches():
+        pattern, _ = assemble(original, names, [], list(local_names))
+        prefix = assemble(context, names, [], list(local_names))[0] if context else b""
+        hits = [i for i in range(len(code)) if code.startswith(pattern, i)
+                and (not prefix or code[max(0, i - len(prefix) - 3):i - 3] == prefix)]
+        if len(hits) != 1:
+            raise SystemExit(f"Poprawka skoku: fragment znaleziony {len(hits)} razy zamiast 1")
+        at = hits[0]
+        patch_at = len(code)
+        extra, _ = assemble(build(at + len(pattern)), names, [], local_names, base=patch_at)
+        jump, _ = assemble([("jmp", patch_at)], names, [], local_names, base=at)
+        assert len(jump) <= len(pattern)
+        code[at:at + len(jump)] = jump      # reszta starego fragmentu jest już nieosiągalna
+        code += extra
+
+    # nowe: kod, lista zmiennych lokalnych, lista globalnych - na końcu skryptu
+    gcount, goff = g("H", 66), g("I", 68)
+    global_ids = [g("h", goff + 2 * i) for i in range(gcount)]
+    if names.id("kfJumpBase") not in global_ids:
+        global_ids.append(names.id("kfJumpBase"))
+    if len(blob) % 2:
+        blob += b"\0"
+    new_code_off = len(blob)
+    blob += code
+    if len(blob) % 2:
+        blob += b"\0"
+    new_loc_off = len(blob)
+    blob += b"".join(struct.pack(">h", names.id(n)) for n in local_names)
+    new_glob_off = len(blob)
+    blob += b"".join(struct.pack(">h", i) for i in global_ids)
+    struct.pack_into(">II", blob, rec + 4, len(code), new_code_off)
+    struct.pack_into(">HI", blob, rec + 18, len(local_names), new_loc_off)
+    struct.pack_into(">HI", blob, 66, len(global_ids), new_glob_off)
+    struct.pack_into(">II", blob, 8, len(blob), len(blob))
+    return owners[0], bytes(blob)
+
+
 # --------------------------------------------------------------------------- #
-def patch(raw, fps, scale, log=print):
+def patch(raw, fps, scale, jump_fix=True, log=print):
     proj = Projector(raw)
     movie = proj.movie
     lnam_idx, scripts = find_script_context(movie)
@@ -528,7 +638,16 @@ def patch(raw, fps, scale, log=print):
         raise SystemExit("Nie znaleziono członka DisplayMode - czy to oryginalny Kuba.exe?")
     log(f"DisplayMode: wyłączono członków obsady: {disabled}")
 
+    replaced = {}
+    if jump_fix:
+        idx, blob = fix_jump(movie, names, scripts)
+        replaced[idx] = blob
+        log("Skok: poprawione podwójne wybicie przy skoku na platformę")
+
     if not fps and scale == "none":
+        proj.replace_chunk(lnam_idx, names.serialize())
+        for idx, blob in replaced.items():
+            proj.replace_chunk(idx, blob)
         return bytes(proj.data)
 
     # 2) skrypt filmu z `on prepareMovie`
@@ -537,7 +656,6 @@ def patch(raw, fps, scale, log=print):
     if target is None:
         raise SystemExit("Nie znaleziono skryptu z handlerem prepareMovie")
     handlers = [("prepareMovie", [], prepare_movie_program(fps, scale), None)]
-    replaced = {}
     if fps:
         handlers.append(("kfTempoKeys", [], tempo_keys_program(), None))
         # 3) pętla gry: przed "go the frame" sprawdź klawisze +/-
@@ -573,6 +691,8 @@ def main(argv=None):
     ap.add_argument("--scale", choices=["fit", "integer", "none"], default="fit",
                     help="fit = 4:3 na cały ekran (domyślnie), integer = całkowita "
                          "wielokrotność 640x480, none = bez skalowania")
+    ap.add_argument("--bez-poprawki-skoku", dest="jump_fix", action="store_false",
+                    help="nie poprawiaj podwójnego wybicia przy skoku na platformę")
     args = ap.parse_args(argv)
     if args.fps and not TEMPO_MIN <= args.fps <= TEMPO_MAX:
         ap.error(f"--fps musi być w zakresie {TEMPO_MIN}-{TEMPO_MAX}")
@@ -581,7 +701,7 @@ def main(argv=None):
     print(f"wejście: {args.input} ({len(raw)} B, sha1 {sha1})")
     if sha1 != ORIGINAL_SHA1:
         print("UWAGA: suma kontrolna różni się od znanego oryginału - próbuję mimo to.")
-    out = patch(raw, args.fps, args.scale)
+    out = patch(raw, args.fps, args.scale, args.jump_fix)
     with open(args.output, "wb") as f:
         f.write(out)
     print(f"zapisano: {args.output} ({len(out)} B)")
