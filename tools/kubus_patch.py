@@ -594,11 +594,22 @@ def fix_jump(movie, names, scripts):
         code[at:at + len(jump)] = jump      # reszta starego fragmentu jest już nieosiągalna
         code += extra
 
-    # nowe: kod, lista zmiennych lokalnych, lista globalnych - na końcu skryptu
+    return owners[0], replace_handler_code(blob, rec, code, local_names, names, ("kfJumpBase",))
+
+
+def replace_handler_code(blob, rec, code, local_names, names, extra_globals=()):
+    """Podpina handlerowi (rekord `rec`) nowy kod i listę zmiennych lokalnych.
+
+    Kod, lokalne i rozszerzoną listę globalnych dopisuje na końcu skryptu - stare
+    dane zostają w pliku, ale nic już na nie nie wskazuje.
+    """
+    blob = bytearray(blob)
+    g = lambda fmt, off: struct.unpack_from(">" + fmt, blob, off)[0]
     gcount, goff = g("H", 66), g("I", 68)
     global_ids = [g("h", goff + 2 * i) for i in range(gcount)]
-    if names.id("kfJumpBase") not in global_ids:
-        global_ids.append(names.id("kfJumpBase"))
+    for name in extra_globals:
+        if names.id(name) not in global_ids:
+            global_ids.append(names.id(name))
     if len(blob) % 2:
         blob += b"\0"
     new_code_off = len(blob)
@@ -613,7 +624,7 @@ def fix_jump(movie, names, scripts):
     struct.pack_into(">HI", blob, rec + 18, len(local_names), new_loc_off)
     struct.pack_into(">HI", blob, 66, len(global_ids), new_glob_off)
     struct.pack_into(">II", blob, 8, len(blob), len(blob))
-    return owners[0], bytes(blob)
+    return bytes(blob)
 
 
 # --------------------------------------------------------------------------- #

@@ -10,6 +10,11 @@ Poziomy z kubus.pl to skompresowane filmy Shockwave ("Afterburner"). Patcher:
      wołały gotoNetPage("zapisz_graj.php?nr=N") na nieistniejącej stronie kubus.pl.
      Nazwa gotoNetPage jest podmieniana na handler kfGoto: "Gram dalej" ładuje
      następny plik .dcr, a "Zakończ"/"Tak" na ekranie Esc zamykają grę.
+  4. Poziom 1: czarodziej zawsze daje czar siły. W oryginale flaga have_power była
+     ustawiana tylko wtedy, gdy Kubuś stał przy czarodzieju w chwili, gdy animacja
+     zaklęcia przekroczyła 5,5 s. Jeśli to się nie udało, przy mieczu Ekskalibur
+     zostawał napis "Oto Twoja nagroda - czar siły!", a miecza nie dało się wziąć.
+     Teraz czar jest nadawany 5,5 s po rzuceniu zaklęcia, mierzone zegarem.
 
 Użycie:
   python kubus_dcr_patch.py KATALOG_Z_DCR KATALOG_WYJŚCIOWY [--fps 30]
@@ -189,6 +194,62 @@ def goto_program(next_movie):
     return p + [("pusharglistnoret", 0), ("extcall", "quit"), ("ret",)]
 
 
+MAGIC_DELAY_MS = 5500      # jak w oryginalnym warunku bonesPlayer.currentTime > 5500
+# koniec oryginalnego stepFrame czarodzieja: sensor(me), rotateTowards(me), ret
+WIZARD_STEP_FRAME_TAIL = bytes.fromhex("4b00 4201 5603 4b00 4201 5606 01")
+
+def wizard_power_program():
+    """Dopisywane na końcu stepFrame czarodzieja (wołanego w każdej klatce).
+
+    blisko = 1 oznacza, że czarodziej rzucił już czar (ustawia to withinZone).
+        if blisko = 1 then
+          if have_power = 0 then
+            if kfMagicStart = 0 then kfMagicStart = the milliSeconds
+            else if the milliSeconds - kfMagicStart > 5500 then have_power = 1
+          end if
+        else
+          kfMagicStart = 0
+        end if
+    """
+    return [
+        ("getprop", "blisko"), ("pushint", 1), ("eq",), ("jmpifz", "not_cast"),
+        ("getglobal", "have_power"), ("pushzero",), ("eq",), ("jmpifz", "done"),
+        ("getglobal", "kfMagicStart"), ("pushzero",), ("eq",), ("jmpifz", "check"),
+        ("getmovieprop", "milliSeconds"), ("setglobal", "kfMagicStart"),
+        ("jmp", "done"),
+        ("label", "check"),
+        ("getmovieprop", "milliSeconds"), ("getglobal", "kfMagicStart"), ("sub",),
+        ("pushint", MAGIC_DELAY_MS), ("gt",), ("jmpifz", "done"),
+        ("pushint", 1), ("setglobal", "have_power"),
+        ("jmp", "done"),
+        ("label", "not_cast"),
+        ("pushzero",), ("setglobal", "kfMagicStart"),
+        ("label", "done"),
+        ("ret",),
+    ]
+
+
+def fix_wizard_power(movie, names, scripts):
+    """Zwraca (zasób, nowy skrypt czarodzieja) albo None, gdy poziom go nie ma."""
+    for s in scripts:
+        blob = movie.get(s)
+        g = lambda fmt, off: struct.unpack_from(">" + fmt, blob, off)[0]
+        props = [names.names[g("h", g("I", 62) + 2 * i)].lower() for i in range(g("H", 60))]
+        hnames = kp.handler_names(blob, names.names)
+        if "blisko" not in props or "withinzone" not in hnames or "czarodziej_magic" not in blob.decode("latin1"):
+            continue
+        rec = kp.handler_record(blob, hnames.index("stepframe"))
+        code_len, code_off = g("I", rec + 4), g("I", rec + 8)
+        code = blob[code_off:code_off + code_len]
+        if not code.endswith(WIZARD_STEP_FRAME_TAIL) or g("H", rec + 18) or len(code) != 55:
+            raise SystemExit("nieoczekiwany stepFrame czarodzieja")
+        new_code = code[:-1] + kp.assemble(wizard_power_program(), names, [], [],
+                                           base=len(code) - 1)[0]
+        return s, kp.replace_handler_code(blob, rec, new_code, [], names,
+                                          ("have_power", "kfMagicStart"))
+    return None
+
+
 def patch_level(data, next_movie, fps):
     movie = Afterburner(data)
     lnam, scripts = lingo_context(movie)
@@ -219,6 +280,9 @@ def patch_level(data, next_movie, fps):
     for s in loops:
         new[s] = kp.build_script(movie.get(s), names, [
             ("exitFrame", ["me"], kp.loop_frame_program(), kp.EVENT_EXIT_FRAME)])
+    wizard = fix_wizard_power(movie, names, scripts)
+    if wizard:
+        new[wizard[0]] = wizard[1]
     movie.set(lnam, names.serialize())
     for rid, blob in new.items():
         movie.set(rid, blob)
