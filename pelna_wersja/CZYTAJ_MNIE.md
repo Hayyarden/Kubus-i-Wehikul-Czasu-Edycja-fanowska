@@ -36,7 +36,7 @@ Awaryjnie grę zamyka `Alt+F4`.
 | Wszystko działa kilka razy za szybko | Ruch postaci jest liczony na klatkę, a poziomy mają tempo 150–200 kl./s | Stałe tempo 30 kl./s i regulacja klawiszami +/- |
 | Po ukończeniu poziomu „Gram dalej” nic nie robił, a „Zakończ” próbował otworzyć stronę | Przyciski wołały `gotoNetPage("zapisz_graj.php?nr=N")`, czyli stronę kubus.pl, która już nie istnieje | „Gram dalej” wczytuje następny poziom. „Zakończ” i „Tak” na ekranie `Esc` zamykają grę |
 | Malutki obraz | – | `SPRS.exe` rozciąga obraz 4:3 na cały główny ekran (to wbudowana funkcja SPR) |
-| Poziom 1: przy mieczu Ekskalibur zostawał napis „Oto Twoja nagroda – czar siły!”, a miecza nie dało się wziąć, mimo 50 dukatów | Czarodziej dawał czar siły (`have_power`) tylko wtedy, gdy Kubuś stał przy nim w chwili, gdy animacja zaklęcia przekroczyła 5,5 s. Jeśli to się nie udało, czaru nie dało się już zdobyć | Czar jest nadawany 5,5 s po rzuceniu zaklęcia, mierzone zegarem, bez względu na animację i miejsce, w którym stoi Kubuś |
+| Poziom 1: przy mieczu Ekskalibur zostawał napis „Oto Twoja nagroda – czar siły!”, a miecza nie dało się wziąć, mimo 50 dukatów | Napis pojawiał się w odległości 250 od czarodzieja, a zaklęcie ruszało dopiero przy 150. Czar siły (`have_power`) był zapisywany tylko wtedy, gdy Kubuś stał przy czarodzieju w chwili, gdy animacja zaklęcia przekroczyła 5,5 s. Jeśli to się nie udało, czaru nie dało się już zdobyć | Zaklęcie rusza w tej samej odległości co napis, a czar jest nadawany 5,5 s po zaklęciu, mierzone zegarem, bez względu na to, gdzie stoi Kubuś |
 
 Pliki poziomów zostały wygenerowane z oryginałów (z folderu z archiwum) poleceniem:
 

@@ -10,11 +10,13 @@ Poziomy z kubus.pl to skompresowane filmy Shockwave ("Afterburner"). Patcher:
      wołały gotoNetPage("zapisz_graj.php?nr=N") na nieistniejącej stronie kubus.pl.
      Nazwa gotoNetPage jest podmieniana na handler kfGoto: "Gram dalej" ładuje
      następny plik .dcr, a "Zakończ"/"Tak" na ekranie Esc zamykają grę.
-  4. Poziom 1: czarodziej zawsze daje czar siły. W oryginale flaga have_power była
-     ustawiana tylko wtedy, gdy Kubuś stał przy czarodzieju w chwili, gdy animacja
-     zaklęcia przekroczyła 5,5 s. Jeśli to się nie udało, przy mieczu Ekskalibur
-     zostawał napis "Oto Twoja nagroda - czar siły!", a miecza nie dało się wziąć.
-     Teraz czar jest nadawany 5,5 s po rzuceniu zaklęcia, mierzone zegarem.
+  4. Poziom 1: czarodziej zawsze daje czar siły, gdy pokaże napis "Oto Twoja nagroda -
+     czar siły!". W oryginale napis pojawiał się w odległości 250 od czarodzieja, a
+     zaklęcie ruszało dopiero przy 150. Flaga have_power była ustawiana tylko wtedy, gdy
+     Kubuś nadal stał przy czarodzieju w chwili, gdy animacja zaklęcia (5,9 s)
+     przekroczyła 5,5 s. Jeśli to się nie udało, przy mieczu Ekskalibur zostawał ten
+     napis, a miecza nie dało się wziąć. Teraz zaklęcie rusza w tej samej odległości co
+     napis, a czar jest nadawany 5,5 s po zaklęciu, mierzone zegarem.
 
 Użycie:
   python kubus_dcr_patch.py KATALOG_Z_DCR KATALOG_WYJŚCIOWY [--fps 30]
@@ -197,6 +199,9 @@ def goto_program(next_movie):
 MAGIC_DELAY_MS = 5500      # jak w oryginalnym warunku bonesPlayer.currentTime > 5500
 # koniec oryginalnego stepFrame czarodzieja: sensor(me), rotateTowards(me), ret
 WIZARD_STEP_FRAME_TAIL = bytes.fromhex("4b00 4201 5603 4b00 4201 5606 01")
+# withinZone czarodzieja: "if myDistance < 150" - warunek rzucenia zaklęcia. Napis
+# "Oto Twoja nagroda" (behavior_komunikaty) pojawia się już przy odległości 250.
+WIZARD_CAST_DISTANCE = (bytes.fromhex("4c01 ae0096 0c"), bytes.fromhex("4c01 ae00fa 0c"))
 
 def wizard_power_program():
     """Dopisywane na końcu stepFrame czarodzieja (wołanego w każdej klatce).
@@ -243,6 +248,13 @@ def fix_wizard_power(movie, names, scripts):
         code = blob[code_off:code_off + code_len]
         if not code.endswith(WIZARD_STEP_FRAME_TAIL) or g("H", rec + 18) or len(code) != 55:
             raise SystemExit("nieoczekiwany stepFrame czarodzieja")
+        zone = kp.handler_record(blob, hnames.index("withinzone"))
+        zone_code = g("I", zone + 8)
+        old, new = WIZARD_CAST_DISTANCE
+        at = blob.find(old, zone_code, zone_code + g("I", zone + 4))
+        if at < 0 or blob.count(old) != 1:
+            raise SystemExit("nieoczekiwany withinZone czarodzieja")
+        blob = blob[:at] + new + blob[at + len(new):]
         new_code = code[:-1] + kp.assemble(wizard_power_program(), names, [], [],
                                            base=len(code) - 1)[0]
         return s, kp.replace_handler_code(blob, rec, new_code, [], names,
