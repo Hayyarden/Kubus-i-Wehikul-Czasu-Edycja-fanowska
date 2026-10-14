@@ -18,7 +18,8 @@ dało się w nią normalnie zagrać, i pakuje ją w instalator z wygodnym launch
 > To nieoficjalny, niekomercyjny projekt fanów. Szczegóły w sekcji [Informacja prawna](#informacja-prawna).
 
 Bazą dla tej edycji fanowskiej jest pełna wersja gry zachowana w Internet Archive:
-[Kubuś i Wehikuł Czasu – pełna wersja + demo](https://archive.org/details/kubus-i-wehiku-czasu-pl-pelna-wersja-demo-winnie-and-the-time-machine-full-version-demo.w).
+[Kubuś i Wehikuł Czasu – pełna wersja + demo](https://archive.org/details/kubus-i-wehiku-czasu-pl-pelna-wersja-demo-winnie-and-the-time-machine-full-version-demo.w)
+
 ---
 
 ## Spis treści
