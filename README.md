@@ -4,7 +4,7 @@
   <img src="docs/zrzuty/launcher1.png" alt="Launcher gry Kubuś i Wehikuł Czasu: lista odblokowanych poziomów, podgląd, ustawienia i przycisk Graj" width="720">
 </p>
 
-**Kubuś i Wehikuł Czasu (2005)** to polska przygodowa gra 3D z Kubusiem, wydana na płycie CD (wersja demo z jednym poziomem),
+**Kubuś i Wehikuł Czasu (2005)** to polska zręcznościowo - przygodowa gra 3D, wydana na płycie CD (wersja demo z jednym poziomem) dołączanej do wielopaków soków Kubuś,
 gdzie kolejne etapy pobierało się ze strony kubus.pl. Strona już nie działa, a gra na współczesnym
 Windowsie działała za szybko (Kubuś teleportował się po ekranie), zmieniała rozdzielczość monitora i nie dało się
 przejść do kolejnego poziomu.
