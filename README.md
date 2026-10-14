@@ -1,7 +1,7 @@
 # Kubuś i Wehikuł Czasu – edycja fanowska
 
 <p align="center">
-  <img src="docs/zrzuty/launcher.png" alt="Launcher gry Kubuś i Wehikuł Czasu: lista odblokowanych poziomów, podgląd, ustawienia i przycisk Graj" width="720">
+  <img src="docs/zrzuty/launcherr.png" alt="Launcher gry Kubuś i Wehikuł Czasu: lista odblokowanych poziomów, podgląd, ustawienia i przycisk Graj" width="720">
 </p>
 
 Polska przygodowa gra 3D z Kubusiem, wydana na płycie CD (wersja demo z jednym poziomem),
