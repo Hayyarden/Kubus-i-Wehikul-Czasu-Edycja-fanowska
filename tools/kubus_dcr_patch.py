@@ -17,6 +17,11 @@ Poziomy z kubus.pl to skompresowane filmy Shockwave ("Afterburner"). Patcher:
      przekroczyła 5,5 s. Jeśli to się nie udało, przy mieczu Ekskalibur zostawał ten
      napis, a miecza nie dało się wziąć. Teraz zaklęcie rusza w tej samej odległości co
      napis, a czar jest nadawany 5,5 s po zaklęciu, mierzone zegarem.
+  5. Rozmawia z launcherem przez pliki ustawień Shockwave (setPref/getPref):
+     tempo startowe czyta z KubusTempo.txt (i zapisuje tam zmiany z klawiszy +/-),
+     a po ukończeniu poziomu zapisuje najwyższy odblokowany poziom w KubusPostep.txt.
+     Ukończenie rozpoznaje po adresie, który gra wysyłała do kubus.pl:
+     zapisz_graj.php?nr=N / zapisz_koncz.php?nr=N, gdzie N to liczba ukończonych poziomów.
 
 Użycie:
   python kubus_dcr_patch.py KATALOG_Z_DCR KATALOG_WYJŚCIOWY [--fps 30]
@@ -168,13 +173,33 @@ def lingo_context(movie):
     return best
 
 
+# Pliki ustawień Shockwave (setPref/getPref), przez które gra rozmawia z launcherem:
+#   tempo  - tempo startowe ustawione w launcherze; gra zapisuje tu zmiany z klawiszy +/-
+#   postęp - najwyższy odblokowany poziom (1-11, 12 = gra ukończona)
+PREF_TEMPO = "KubusTempo.txt"
+PREF_POSTEP = "KubusPostep.txt"
+
+
 def prepare_movie_program(fps):
     p = kp.prepare_movie_program(0, "none")[:-1]   # oryginalna treść
     p += [
-        # if voidP(kfTempo) then kfTempo = fps   (tempo przechodzi między poziomami)
+        # if voidP(kfTempo) then              (tempo przechodzi między poziomami)
+        #   kfTempo = integer(getPref(PREF_TEMPO))
+        #   if voidP(kfTempo) then kfTempo = fps
+        #   kfTempo = max(TEMPO_MIN, min(TEMPO_MAX, kfTempo))
         ("getglobal", "kfTempo"), ("pusharglist", 1), ("extcall", "voidP"),
         ("jmpifz", "have_tempo"),
+        ("pushcons", PREF_TEMPO), ("pusharglist", 1), ("extcall", "getPref"),
+        ("pusharglist", 1), ("extcall", "integer"), ("setglobal", "kfTempo"),
+        ("getglobal", "kfTempo"), ("pusharglist", 1), ("extcall", "voidP"),
+        ("jmpifz", "pref_ok"),
         ("pushint", fps), ("setglobal", "kfTempo"),
+        ("label", "pref_ok"),
+        ("getglobal", "kfTempo"), ("pushint", kp.TEMPO_MIN), ("lt",), ("jmpifz", "min_ok"),
+        ("pushint", kp.TEMPO_MIN), ("setglobal", "kfTempo"),
+        ("label", "min_ok"),
+        ("getglobal", "kfTempo"), ("pushint", kp.TEMPO_MAX), ("gt",), ("jmpifz", "have_tempo"),
+        ("pushint", kp.TEMPO_MAX), ("setglobal", "kfTempo"),
         ("label", "have_tempo"),
         ("pushzero",), ("setglobal", "kfUpWas"), ("pushzero",), ("setglobal", "kfDownWas"),
         ("getglobal", "kfTempo"), ("pusharglistnoret", 1), ("extcall", "puppetTempo"),
@@ -183,9 +208,42 @@ def prepare_movie_program(fps):
     return p
 
 
-def goto_program(next_movie):
-    """on kfGoto url - zastępuje gotoNetPage z przycisków gry."""
-    p = []
+def tempo_keys_program():
+    """Jak w Kuba.exe, ale nowe tempo trafia też do PREF_TEMPO (launcher je pokaże)."""
+    p = kp.tempo_keys_program()
+    at = p.index(("label", "done"))
+    return p[:at] + [
+        ("pushcons", PREF_TEMPO),
+        ("getglobal", "kfTempo"), ("pusharglist", 1), ("extcall", "string"),
+        ("pusharglistnoret", 2), ("extcall", "setPref"),
+    ] + p[at:]
+
+
+def goto_program(level, next_movie):
+    """on kfGoto url - zastępuje gotoNetPage z przycisków gry.
+
+    Gra wołała zapisz_graj.php?nr=N ("Gram dalej") albo zapisz_koncz.php?nr=N
+    ("Zakończ" po poziomie, "Tak" na ekranie Esc), gdzie N to liczba ukończonych
+    poziomów. Ukończenie tego poziomu zapisujemy w PREF_POSTEP (tylko w górę).
+    """
+    unlocked = level + 1
+    p = [
+        # if url contains "graj" or url contains "nr=<poziom>" then
+        ("getparam", 0), ("pushcons", "graj"), ("containsstr",),
+        ("getparam", 0), ("pushcons", "nr=%d" % level), ("containsstr",), ("or",),
+        ("jmpifz", "no_progress"),
+        #   kfP = integer(getPref(PREF_POSTEP)) ; if voidP(kfP) then kfP = 0
+        ("pushcons", PREF_POSTEP), ("pusharglist", 1), ("extcall", "getPref"),
+        ("pusharglist", 1), ("extcall", "integer"), ("setlocal", "kfP"),
+        ("getlocal", "kfP"), ("pusharglist", 1), ("extcall", "voidP"), ("jmpifz", "have_p"),
+        ("pushzero",), ("setlocal", "kfP"),
+        ("label", "have_p"),
+        #   if kfP < unlocked then setPref(PREF_POSTEP, string(unlocked))
+        ("getlocal", "kfP"), ("pushint", unlocked), ("lt",), ("jmpifz", "no_progress"),
+        ("pushcons", PREF_POSTEP), ("pushcons", str(unlocked)),
+        ("pusharglistnoret", 2), ("extcall", "setPref"),
+        ("label", "no_progress"),
+    ]
     if next_movie:
         p += [
             ("getparam", 0), ("pushcons", "graj"), ("containsstr",), ("jmpifz", "quit"),
@@ -262,7 +320,7 @@ def fix_wizard_power(movie, names, scripts):
     return None
 
 
-def patch_level(data, next_movie, fps):
+def patch_level(data, level, next_movie, fps):
     movie = Afterburner(data)
     lnam, scripts = lingo_context(movie)
     names = kp.Names(movie.get(lnam))
@@ -286,8 +344,8 @@ def patch_level(data, next_movie, fps):
 
     new = {target[0]: kp.build_script(movie.get(target[0]), names, [
         ("prepareMovie", [], prepare_movie_program(fps), None),
-        ("kfTempoKeys", [], kp.tempo_keys_program(), None),
-        ("kfGoto", ["url"], goto_program(next_movie), None),
+        ("kfTempoKeys", [], tempo_keys_program(), None),
+        ("kfGoto", ["url"], goto_program(level, next_movie), None),
     ], extra_globals=("kfTempo", "kfUpWas", "kfDownWas"))}
     for s in loops:
         new[s] = kp.build_script(movie.get(s), names, [
@@ -317,7 +375,7 @@ def main(argv=None):
     for i, name in enumerate(files):
         nxt = files[i + 1] if i + 1 < len(files) else None
         data = open(os.path.join(args.src, name), "rb").read()
-        out = patch_level(data, nxt, args.fps)
+        out = patch_level(data, int(name[:2]), nxt, args.fps)
         with open(os.path.join(args.dst, name), "wb") as f:
             f.write(out)
         print(f"{name}: {len(data)} -> {len(out)} B, dalej: {nxt or 'koniec gry'}")
