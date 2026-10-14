@@ -4,7 +4,7 @@
 IDI_KUBUS ICON "res/kubus.ico"
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "kubus.manifest"
 
-IDR_LOGO RCDATA "res/logo.jpg"
+IDR_BANNER RCDATA "res/baner.jpg"
 101 RCDATA "res/poziom01.jpg"
 102 RCDATA "res/poziom02.jpg"
 103 RCDATA "res/poziom03.jpg"

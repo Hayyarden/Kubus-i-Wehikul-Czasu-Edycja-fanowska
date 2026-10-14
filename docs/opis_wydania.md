@@ -1,4 +1,4 @@
-Fanowskie wydanie pełnej wersji gry **Kubuś i Wehikuł Czasu** (11 poziomów) dla współczesnego Windowsa.
+Edycja fanowska pełnej wersji gry **Kubuś i Wehikuł Czasu** (11 poziomów) dla Windowsa 10 i 11.
 
 ### Do pobrania
 

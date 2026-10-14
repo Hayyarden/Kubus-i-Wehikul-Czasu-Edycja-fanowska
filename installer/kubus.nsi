@@ -1,4 +1,4 @@
-; Instalator "Kubuś i Wehikuł Czasu" - fanowskie wydanie.
+; Instalator "Kubuś i Wehikuł Czasu" - edycja fanowska.
 ; Budowany przez tools/zbuduj_wydanie.sh (NSIS 3, makensis), np.:
 ;   makensis -DWERSJA=1.0 -DSRC="dist/Kubus i Wehikul Czasu" -DOUT=dist/instalator.exe installer/kubus.nsi
 ; SRC to przygotowany folder gry: Kubus.exe, CZYTAJ_MNIE.txt, dane\, demo\.
@@ -36,17 +36,17 @@ OutFile "${OUT}"
 InstallDir "$PROGRAMFILES32\Kubus i Wehikul Czasu"
 InstallDirRegKey HKLM "${KLUCZ_GRY}" "Folder"
 RequestExecutionLevel admin
-BrandingText "${NAZWA} – fanowskie wydanie ${WERSJA}"
+BrandingText "${NAZWA} – edycja fanowska ${WERSJA}"
 ShowInstDetails show
 ShowUninstDetails show
 
 VIProductVersion "${WERSJA_NUM}"
-VIAddVersionKey /LANG=1045 "ProductName" "Kubus i Wehikul Czasu (fanowskie wydanie)"
+VIAddVersionKey /LANG=1045 "ProductName" "Kubus i Wehikul Czasu (edycja fanowska)"
 VIAddVersionKey /LANG=1045 "FileDescription" "Instalator gry Kubus i Wehikul Czasu"
 VIAddVersionKey /LANG=1045 "FileVersion" "${WERSJA}"
 VIAddVersionKey /LANG=1045 "ProductVersion" "${WERSJA}"
 VIAddVersionKey /LANG=1045 "Comments" "${REPO}"
-VIAddVersionKey /LANG=1045 "LegalCopyright" "Gra: MGD Sp. z o.o. / VERUM.COM. Fanowskie wydanie niekomercyjne."
+VIAddVersionKey /LANG=1045 "LegalCopyright" "Gra: MGD Sp. z o.o. / VERUM.COM. Edycja fanowska, niekomercyjna."
 
 ; --------------------------------------------------------------------------
 ; Wygląd
@@ -62,8 +62,8 @@ VIAddVersionKey /LANG=1045 "LegalCopyright" "Gra: MGD Sp. z o.o. / VERUM.COM. Fa
 !define MUI_ABORTWARNING
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
-!define MUI_WELCOMEPAGE_TITLE "${NAZWA}$\r$\nfanowskie wydanie ${WERSJA}"
-!define MUI_WELCOMEPAGE_TEXT "Ten program zainstaluje pełną wersję gry (11 poziomów) poprawioną tak, żeby działała na współczesnym Windowsie:$\r$\n$\r$\n  • stałe tempo gry i regulacja klawiszami + / −$\r$\n  • obraz powiększony na cały ekran$\r$\n  • działające przechodzenie między poziomami$\r$\n  • poprawki błędów z oryginału$\r$\n$\r$\nDo gry potrzebny jest Adobe Shockwave Player 12 – instalator może go od razu doinstalować.$\r$\n$\r$\nKliknij Dalej, aby kontynuować."
+!define MUI_WELCOMEPAGE_TITLE "${NAZWA}$\r$\nedycja fanowska ${WERSJA}"
+!define MUI_WELCOMEPAGE_TEXT "Ten program zainstaluje pełną wersję gry (11 poziomów) poprawioną tak, żeby działała na Windowsie 10 i 11:$\r$\n$\r$\n  • stałe tempo gry i regulacja klawiszami + / −$\r$\n  • obraz powiększony na cały ekran$\r$\n  • działające przechodzenie między poziomami$\r$\n  • poprawki błędów z oryginału$\r$\n$\r$\nDo gry potrzebny jest Adobe Shockwave Player 12 – instalator może go od razu doinstalować.$\r$\n$\r$\nKliknij Dalej, aby kontynuować."
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_PAGE_HEADER_TEXT "Informacja o wydaniu"
 !define MUI_PAGE_HEADER_SUBTEXT "Przeczytaj przed instalacją."
@@ -120,10 +120,10 @@ Section "Gra – pełna wersja (11 poziomów)" SecGra
   CreateShortcut "$SMPROGRAMS\${NAZWA}\Odinstaluj.lnk" "$INSTDIR\Odinstaluj.exe"
 
   WriteRegStr HKLM "${KLUCZ_GRY}" "Folder" "$INSTDIR"
-  WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "DisplayName" "${NAZWA} (fanowskie wydanie)"
+  WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "DisplayName" "${NAZWA} (edycja fanowska)"
   WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "DisplayVersion" "${WERSJA}"
   WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "DisplayIcon" "$INSTDIR\Kubus.exe"
-  WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "Publisher" "Fanowskie wydanie (oryginał: MGD / VERUM.COM)"
+  WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "Publisher" "Edycja fanowska (oryginał: MGD / VERUM.COM)"
   WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "URLInfoAbout" "${REPO}"
   WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "${KLUCZ_ODINSTALUJ}" "UninstallString" '"$INSTDIR\Odinstaluj.exe"'
@@ -200,6 +200,9 @@ Section "Uninstall"
 
   SetShellVarContext current
   RMDir /r "$APPDATA\Kubus i Wehikul Czasu"
+  ; postęp i szybkość zapisane przez grę (pliki ustawień Shockwave)
+  Delete "$PROFILE\AppData\LocalLow\Adobe\Director 12\SPR\Prefs\Kubus*.txt"
+  Delete "$PROFILE\AppData\LocalLow\Adobe\Director 12\SPRS\Prefs\Kubus*.txt"
 
   DeleteRegKey HKLM "${KLUCZ_ODINSTALUJ}"
   DeleteRegKey HKLM "${KLUCZ_GRY}"

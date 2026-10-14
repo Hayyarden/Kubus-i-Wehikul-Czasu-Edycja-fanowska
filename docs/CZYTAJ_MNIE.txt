@@ -1,12 +1,12 @@
-KUBUŚ I WEHIKUŁ CZASU – fanowskie wydanie
-==========================================
+KUBUŚ I WEHIKUŁ CZASU – edycja fanowska
+========================================
 
 Polska przygodowa gra 3D z Kubusiem. Kubuś podróżuje wehikułem czasu
 przez 11 poziomów w czterech światach: Zamek króla Artura, Kraina
 samurajów, Świątynia słońca i Miasto przyszłości.
 
 To wydanie zbiera całą grę w jednym miejscu i poprawia ją tak, żeby
-działała na współczesnym Windowsie (7, 8, 10, 11).
+działała na Windowsie 10 i 11.
 
 
 JAK ZACZĄĆ
@@ -19,8 +19,9 @@ JAK ZACZĄĆ
 3. Wybierz poziom i kliknij „Graj!”.
 
 Po ukończeniu poziomu przycisk „Gram dalej” od razu wczytuje następny.
-Gra nie zapisuje postępów, ale launcher pamięta ostatnio wybrany
-poziom, więc możesz wrócić do gry od dowolnego miejsca.
+Gra zapamiętuje ukończone poziomy, a launcher pokazuje tylko te, do
+których już dotarłeś – żeby nie zdradzać, co będzie dalej. Zaznacz
+„Pokaż wszystkie”, jeśli chcesz zobaczyć (i wybrać) każdy poziom.
 
 
 STEROWANIE
@@ -32,21 +33,25 @@ STEROWANIE
   Esc ................. ekran wyjścia (Tak / Nie)
   Alt+F4 .............. awaryjne zamknięcie
 
-Gra startuje z tempem 30 klatek na sekundę. Zmienione klawiszami + / -
-tempo przechodzi na kolejne poziomy.
+Gra startuje z szybkością ustawioną w launcherze (domyślnie 30 klatek
+na sekundę). Zmienione klawiszami + / - tempo przechodzi na kolejne
+poziomy, a launcher je zapamiętuje.
 
 
 USTAWIENIA W LAUNCHERZE
 -----------------------
 
-* Pełny ekran – obraz 4:3 rozciągnięty na cały główny monitor.
-  Bez zaznaczenia gra działa w oknie 640×480.
-* Grafika 3D przez DirectX 9 / OpenGL – zaznacz, jeśli obraz 3D jest
+* Pełny ekran (lub okno 640×480) – obraz 4:3 rozciągnięty na cały
+  główny monitor. Bez zaznaczenia gra działa w oknie.
+* DirectX 9 / OpenGL zamiast DirectX 7 – zaznacz, jeśli obraz 3D jest
   zepsuty, migocze albo brakuje modeli.
-* Obejście listy „złych sterowników” – zaznacz, jeśli zamiast gry widać
-  czarny ekran (zdarza się na kartach NVIDIA).
+* Obejście Shockwave 3D – zaznacz, jeśli zamiast gry widać czarny ekran
+  (zdarza się na kartach NVIDIA).
+* Szybkość gry – tempo w klatkach na sekundę (10–80, strzałki co 5).
 
-Ustawienia są zapisywane w %APPDATA%\Kubus i Wehikul Czasu\ustawienia.ini.
+Ustawienia launchera są zapisywane w
+%APPDATA%\Kubus i Wehikul Czasu\ustawienia.ini, a postęp i szybkość gry
+w %USERPROFILE%\AppData\LocalLow\Adobe\Director 12\SPR (i SPRS)\Prefs.
 
 
 WERSJA Z PŁYTY
@@ -60,9 +65,10 @@ więc przydaje się, gdy pełna wersja nie chce ruszyć.
 GDY COŚ NIE DZIAŁA
 ------------------
 
-* Czarny ekran – zaznacz w launcherze „Obejście listy złych sterowników”,
-  a jeśli to nie pomoże, także „Grafika 3D przez DirectX 9 / OpenGL”.
-* Gra działa za szybko lub za wolno – użyj klawiszy + i -.
+* Czarny ekran – zaznacz w launcherze „Obejście Shockwave 3D”, a jeśli
+  to nie pomoże, także „DirectX 9 / OpenGL zamiast DirectX 7”.
+* Gra działa za szybko lub za wolno – zmień „Szybkość gry” w launcherze
+  albo użyj klawiszy + i - w trakcie gry.
 * Windows ostrzega przed nieznanym programem (SmartScreen) – pliki nie są
   podpisane cyfrowo. Kliknij „Więcej informacji” → „Uruchom mimo to”.
 * Nie włączaj trybu zgodności dla Kubus.exe ani plików gry – nie jest
@@ -76,8 +82,8 @@ CO ZOSTAŁO POPRAWIONE
 
 * Stałe tempo gry. Ruch postaci jest liczony na klatkę, a poziomy miały
   tempo 150–200 kl./s, więc na nowym komputerze wszystko pędziło.
-* Przejścia między poziomami. „Gram dalej” i „Zakończ” odwoływały się
-  do nieistniejącej już strony kubus.pl.
+* Przejścia między poziomami i zapis postępów. „Gram dalej” i „Zakończ”
+  odwoływały się do nieistniejącej już strony kubus.pl.
 * Obraz powiększony na cały ekran zamiast malutkiego okna 640×480.
 * Poziom 1: czarodziej zawsze daje czar siły, więc da się wziąć miecz
   Ekskalibur (w oryginale czasem się to blokowało).

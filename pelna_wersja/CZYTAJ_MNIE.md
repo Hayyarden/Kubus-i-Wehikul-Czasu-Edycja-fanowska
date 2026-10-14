@@ -32,7 +32,18 @@ Sterowanie:
 * `Esc` – ekran wyjścia (Tak/Nie),
 * `+` / `-` (także na klawiaturze numerycznej) – szybkość gry.
 
-Tempo startuje od 30 kl./s, a zmienione klawiszami przechodzi na kolejne poziomy.
+Tempo startuje od wartości ustawionej w launcherze (domyślnie 30 kl./s), a zmienione
+klawiszami przechodzi na kolejne poziomy.
+
+Gra i launcher wymieniają dane przez pliki ustawień Shockwave (`setPref`/`getPref`).
+Odtwarzacz trzyma je w `%USERPROFILE%\AppData\LocalLow\Adobe\Director 12\SPR\Prefs`
+(dla `SPRS.exe` w folderze `SPRS`):
+
+* `KubusTempo.txt` – tempo startowe. Zapisuje je launcher przed startem gry, a gra po każdej
+  zmianie klawiszami `+`/`-`. Bez tego pliku gra startuje z tempem wbudowanym w poziomy (30).
+* `KubusPostep.txt` – najwyższy odblokowany poziom (12 = cała gra ukończona). Zapisuje go gra
+  po ukończeniu poziomu: „Gram dalej” albo „Zakończ” na ekranie końca poziomu. Wartość tylko
+  rośnie, więc ponowne przejście wcześniejszego poziomu jej nie cofa.
 Awaryjnie grę zamyka `Alt+F4`.
 
 ## Co zostało poprawione w plikach poziomów
@@ -41,6 +52,7 @@ Awaryjnie grę zamyka `Alt+F4`.
 |---|---|---|
 | Wszystko działa kilka razy za szybko | Ruch postaci jest liczony na klatkę, a poziomy mają tempo 150–200 kl./s | Stałe tempo 30 kl./s i regulacja klawiszami +/- |
 | Po ukończeniu poziomu „Gram dalej” nic nie robił, a „Zakończ” próbował otworzyć stronę | Przyciski wołały `gotoNetPage("zapisz_graj.php?nr=N")`, czyli stronę kubus.pl, która już nie istnieje | „Gram dalej” wczytuje następny poziom. „Zakończ” i „Tak” na ekranie `Esc` zamykają grę |
+| Postęp zapisywał serwer kubus.pl | Ta sama strona dostawała liczbę ukończonych poziomów (`nr=N`) | Ukończenie poziomu jest zapisywane przez `setPref` w pliku `KubusPostep.txt` (najwyższy odblokowany poziom), który czyta launcher |
 | Malutki obraz | – | `SPRS.exe` rozciąga obraz 4:3 na cały główny ekran (to wbudowana funkcja SPR) |
 | Poziom 1: przy mieczu Ekskalibur zostawał napis „Oto Twoja nagroda – czar siły!”, a miecza nie dało się wziąć, mimo 50 dukatów | Napis pojawiał się w odległości 250 od czarodzieja, a zaklęcie ruszało dopiero przy 150. Czar siły (`have_power`) był zapisywany tylko wtedy, gdy Kubuś stał przy czarodzieju w chwili, gdy animacja zaklęcia przekroczyła 5,5 s. Jeśli to się nie udało, czaru nie dało się już zdobyć | Zaklęcie rusza w tej samej odległości co napis, a czar jest nadawany 5,5 s po zaklęciu, mierzone zegarem, bez względu na to, gdzie stoi Kubuś |
 
@@ -60,12 +72,12 @@ czarny ekran.
 
 * **Czarny ekran albo brak 3D na kartach NVIDIA** – SPR ma przełącznik
   `--bugfixShockwave3DBadDriverList` (poprawka listy „złych sterowników” Shockwave 3D).
-  W launcherze to opcja „Obejście listy złych sterowników”. W `Graj.cmd` dopisz go
+  W launcherze to opcja „Obejście Shockwave 3D”. W `Graj.cmd` dopisz go
   w linii `start "" /wait "%PLAYER%" "%FILE%"` na końcu.
   Pod Wine ten przełącznik dawał czarny ekran, dlatego nie jest włączony domyślnie.
 * **Problemy z grafiką 3D na Windows 10/11** – drugi przełącznik SPR, `--noDirectX7`,
   przestawia Shockwave 3D z DirectX 7 na DirectX 9 albo OpenGL. W launcherze to opcja
-  „Grafika 3D przez DirectX 9 / OpenGL”, w `Graj.cmd` dopisuje się go w tym samym miejscu.
+  „DirectX 9 / OpenGL zamiast DirectX 7”, w `Graj.cmd` dopisuje się go w tym samym miejscu.
 
 ## Jak to było sprawdzane
 

@@ -1,7 +1,7 @@
-# Kubuś i Wehikuł Czasu – fanowskie wydanie
+# Kubuś i Wehikuł Czasu – edycja fanowska
 
 <p align="center">
-  <img src="docs/zrzuty/launcher.png" alt="Launcher gry Kubuś i Wehikuł Czasu: lista 11 poziomów, podgląd i przycisk Graj" width="720">
+  <img src="docs/zrzuty/launcher.png" alt="Launcher gry Kubuś i Wehikuł Czasu: lista odblokowanych poziomów, podgląd, ustawienia i przycisk Graj" width="720">
 </p>
 
 Polska przygodowa gra 3D z Kubusiem, wydana na płycie CD (wersja demo z jednym poziomem),
@@ -47,7 +47,7 @@ Grę wykonało studio VERUM.COM, a na okładce widnieje © MGD Sp. z o.o.
 
 ## Jak zagrać
 
-Wymagania: Windows 7, 8, 10 lub 11 (32- albo 64-bitowy), karta graficzna z obsługą 3D.
+Wymagania: Windows 10 lub 11, karta graficzna z obsługą 3D.
 
 ### Instalator (polecany)
 
@@ -73,14 +73,20 @@ znajdzie instalator Shockwave w folderze z archiwum.
 
 ### Launcher
 
-- lista 11 poziomów z podglądem, zapamiętuje ostatnio wybrany poziom,
+- lista poziomów z podglądem. Widać tylko poziomy, do których gracz już doszedł, żeby nie
+  zdradzać, co będzie dalej. Pole **Pokaż wszystkie** odsłania całą listę,
+- **szybkość gry** (10–80 kl./s, strzałkami co 5). Zmiana klawiszami `+`/`-` w trakcie gry
+  wraca do launchera,
 - pełny ekran albo okno 640×480,
 - dwa przełączniki dla problematycznych kart graficznych (opisane [niżej](#gdy-coś-nie-działa)),
 - sprawdza, czy jest Shockwave Player 12, i w razie potrzeby go instaluje,
 - przycisk **Wersja z płyty** uruchamia poprawioną wersję demo z płyty CD (1 poziom), która
   działa bez Shockwave Playera.
 
-Ustawienia są zapisywane w `%APPDATA%\Kubus i Wehikul Czasu\ustawienia.ini`.
+Gra zapisuje postęp po ukończeniu każdego poziomu (przycisk „Gram dalej” albo „Zakończ” na
+ekranie końca poziomu). Postęp i szybkość leżą w plikach ustawień Shockwave
+(`%USERPROFILE%\AppData\LocalLow\Adobe\Director 12\SPR*\Prefs\Kubus*.txt`), a pozostałe
+ustawienia launchera w `%APPDATA%\Kubus i Wehikul Czasu\ustawienia.ini`.
 
 ## Sterowanie
 
@@ -92,16 +98,17 @@ Ustawienia są zapisywane w `%APPDATA%\Kubus i Wehikul Czasu\ustawienia.ini`.
 | `Esc` | ekran wyjścia (Tak / Nie) |
 | `Alt+F4` | awaryjne zamknięcie |
 
-Gra startuje z tempem 30 kl./s. Tempo zmienione klawiszami przechodzi na kolejne poziomy.
+Gra startuje z szybkością ustawioną w launcherze (domyślnie 30 kl./s). Tempo zmienione
+klawiszami przechodzi na kolejne poziomy.
 Po ukończeniu poziomu przycisk **Gram dalej** od razu wczytuje następny.
 
 ## Gdy coś nie działa
 
 | Objaw | Co zrobić |
 |---|---|
-| Czarny ekran zamiast gry | W launcherze zaznacz **Obejście listy „złych sterowników”** (częste na kartach NVIDIA). Jeśli nie pomoże, zaznacz też **Grafika 3D przez DirectX 9 / OpenGL**. |
-| Grafika 3D migocze, brakuje modeli | Zaznacz **Grafika 3D przez DirectX 9 / OpenGL**. |
-| Gra za szybka albo za wolna | Klawisze `+` i `-` w trakcie gry. |
+| Czarny ekran zamiast gry | W launcherze zaznacz **Obejście Shockwave 3D** (częste na kartach NVIDIA). Jeśli nie pomoże, zaznacz też **DirectX 9 / OpenGL zamiast DirectX 7**. |
+| Grafika 3D migocze, brakuje modeli | Zaznacz **DirectX 9 / OpenGL zamiast DirectX 7**. |
+| Gra za szybka albo za wolna | Pole **Szybkość gry** w launcherze albo klawisze `+` i `-` w trakcie gry. |
 | „System Windows ochronił ten komputer” (SmartScreen) | Pliki nie są podpisane cyfrowo. Kliknij **Więcej informacji → Uruchom mimo to**. |
 | Pełna wersja w ogóle nie rusza | Spróbuj przycisku **Wersja z płyty**. Działa bez Shockwave Playera. |
 
@@ -124,7 +131,7 @@ działała na współczesnym komputerze.
 | Problem | Przyczyna | Poprawka |
 |---|---|---|
 | Wszystko działa kilka razy za szybko | Ruch postaci jest liczony na klatkę, a poziomy mają tempo 150–200 kl./s | Stałe tempo 30 kl./s i regulacja klawiszami `+`/`-` |
-| „Gram dalej” nic nie robi, „Zakończ” otwiera stronę | Przyciski wołały nieistniejącą stronę `kubus.pl/zapisz_graj.php` | „Gram dalej” wczytuje następny poziom, „Zakończ” zamyka grę |
+| „Gram dalej” nic nie robi, „Zakończ” otwiera stronę, postęp się nie zapisuje | Przyciski wołały nieistniejącą stronę `kubus.pl/zapisz_graj.php?nr=N` | „Gram dalej” wczytuje następny poziom, „Zakończ” zamyka grę, a ukończenie poziomu jest zapisywane lokalnie (launcher odblokowuje kolejny) |
 | Czarny ekran w odtwarzaczu | SPR domyślnie ładuje gry przez serwer proxy Flashpointa | Proxy wyłączone, użyty wariant SPR dla Shockwave 12 |
 | Malutki obraz | – | Obraz 4:3 rozciągnięty na cały ekran |
 | Poziom 1: nie da się wziąć miecza Ekskalibur | Czar siły był zapisywany tylko wtedy, gdy Kubuś stał przy czarodzieju w określonym momencie animacji | Czar jest nadawany zawsze po zaklęciu czarodzieja |
@@ -218,6 +225,10 @@ ręcznie (Actions → Wydanie → Run workflow), wtedy pliki trafiają do artefa
   z Shockwave 12.3, skróty, start poziomów na pełnym ekranie i w oknie, oba przełączniki
   grafiki 3D, wersja z płyty, powrót do launchera po zamknięciu gry, zapamiętywanie ustawień,
   czyste odinstalowanie.
+- Wymiana danych z grą pod Wine: gra odczytuje szybkość ustawioną w launcherze i zapisuje jej
+  zmiany z klawiszy `+`/`-`, a launcher po zamknięciu gry pokazuje nowo odblokowane poziomy.
+  Zapis postępu sprawdzony na wariancie testowym poziomu (ta sama ścieżka kodu co „Gram dalej”
+  i „Zakończ”), bez przechodzenia poziomu od początku do końca.
 - Poprawki gry były sprawdzane pod Wine (szczegóły w plikach `CZYTAJ_MNIE.md`).
 - **Na prawdziwym Windowsie całość nie była jeszcze testowana.** Jeśli zagrasz, daj znać w
   [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/issues), czy wszystko działa.

@@ -1,13 +1,19 @@
 /*
- * Launcher "Kubuś i Wehikuł Czasu" - fanowskie wydanie pełnej wersji (11 poziomów).
+ * Launcher "Kubuś i Wehikuł Czasu" - edycja fanowska pełnej wersji (11 poziomów).
  *
  * Okno z listą poziomów, podglądem i ustawieniami. Uruchamia poprawione pliki .dcr
  * w odtwarzaczu Flashpoint SPR (SPR.exe w oknie / SPRS.exe na pełnym ekranie),
  * sprawdza, czy jest Adobe Shockwave Player 12, i w razie potrzeby uruchamia
  * dołączony instalator sw_lic_full_installer.msi.
  *
+ * Z grą launcher rozmawia przez pliki ustawień Shockwave (setPref/getPref), które
+ * odtwarzacz trzyma w ...\AppData\LocalLow\Adobe\Director 12\<SPR|SPRS>\Prefs:
+ *   KubusPostep.txt - najwyższy odblokowany poziom (zapisuje go gra po ukończeniu
+ *                     poziomu; 12 = cała gra ukończona),
+ *   KubusTempo.txt  - tempo startowe (zapisuje launcher; gra zapisuje zmiany z +/-).
+ *
  * Czysty Win32, bez dodatkowych bibliotek. Budowanie: launcher/build.sh (MinGW-w64).
- * Ustawienia: %APPDATA%\Kubus i Wehikul Czasu\ustawienia.ini
+ * Ustawienia launchera: %APPDATA%\Kubus i Wehikul Czasu\ustawienia.ini
  */
 #define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
@@ -16,6 +22,7 @@
 #include <commctrl.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <knownfolders.h>
 #include <olectl.h>
 #include <wchar.h>
 
@@ -30,12 +37,18 @@
 #define MSI_NAME L"sw_lic_full_installer.msi"
 #define FLAG_NO_DX7 L"--noDirectX7"
 #define FLAG_BAD_DRIVER L"--bugfixShockwave3DBadDriverList"
+#define PREF_POSTEP L"KubusPostep.txt"
+#define PREF_TEMPO L"KubusTempo.txt"
 
 #define LEVELS 11
+#define TEMPO_MIN 10
+#define TEMPO_MAX 80
+#define TEMPO_STEP 5
+#define TEMPO_DEFAULT 30
 #define WM_APP_GAME_ENDED (WM_APP + 1)
 
 enum {
-    IDC_LIST = 100, IDC_FULLSCREEN, IDC_NODX7, IDC_BADDRIVER,
+    IDC_LIST = 100, IDC_SHOW_ALL, IDC_FULLSCREEN, IDC_NODX7, IDC_BADDRIVER, IDC_TEMPO, IDC_TEMPO_SPIN,
     IDC_PLAY, IDC_DEMO, IDC_STATUS, IDC_INSTALL_SW, IDC_INSTRUKCJA, IDC_EXIT
 };
 
@@ -53,16 +66,18 @@ static const struct { const wchar_t *name, *world; } LEVEL_INFO[LEVELS] = {
     {L"Pokój badań", L"Miasto przyszłości"},
 };
 
-/* Kolory banera - jak w menu z płyty */
-#define C_BANNER RGB(32, 32, 32)
-#define C_BANNER_TEXT RGB(236, 226, 196)
-#define C_BANNER_DIM RGB(160, 150, 130)
-#define C_GOLD RGB(222, 160, 32)
+/* Kolory: zielony baner jak opakowania Kubusia */
+#define C_BANNER_TEXT RGB(255, 255, 255)
+#define C_BANNER_DIM RGB(238, 250, 222)
+#define C_BANNER_SHADOW RGB(46, 110, 22)
+#define C_BANNER_STRIPE RGB(62, 138, 30)
+#define C_NUMBER RGB(70, 150, 35)
 
 static HINSTANCE g_inst;
-static HWND g_wnd, g_list, g_play, g_demo, g_status, g_install, g_fullscreen, g_nodx7, g_baddriver;
-static HFONT g_font, g_font_bold, g_font_small, g_font_big, g_font_title;
-static IPicture *g_logo, *g_preview[LEVELS];
+static HWND g_wnd, g_list, g_show_all, g_play, g_demo, g_status, g_install;
+static HWND g_fullscreen, g_nodx7, g_baddriver, g_tempo, g_tempo_spin;
+static HFONT g_font, g_font_bold, g_font_small, g_font_big, g_font_number, g_font_title;
+static IPicture *g_banner, *g_preview[LEVELS];
 static int g_dpi = 96;
 
 static wchar_t g_exe_dir[MAX_PATH];
@@ -71,6 +86,7 @@ static wchar_t g_level_file[LEVELS][MAX_PATH]; /* np. 01_droga_do_zamku.dcr ("" 
 static wchar_t g_demo_exe[MAX_PATH];
 static wchar_t g_ini[MAX_PATH];
 static BOOL g_has_shockwave;
+static int g_unlocked = 1;                     /* najwyższy odblokowany poziom (1..12) */
 
 #define S(x) MulDiv((x), g_dpi, 96)
 
@@ -82,6 +98,12 @@ static BOOL file_exists(const wchar_t *path)
 {
     DWORD a = GetFileAttributesW(path);
     return a != INVALID_FILE_ATTRIBUTES && !(a & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+static BOOL dir_exists(const wchar_t *path)
+{
+    DWORD a = GetFileAttributesW(path);
+    return a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY);
 }
 
 /* Łączy katalog z dalszą częścią ścieżki i normalizuje ".." */
@@ -197,7 +219,119 @@ static BOOL detect_shockwave(void)
 }
 
 /* ------------------------------------------------------------------------- */
-/* Ustawienia                                                                */
+/* Pliki ustawień Shockwave (wspólne z grą)                                  */
+/* ------------------------------------------------------------------------- */
+
+#define PREF_DIRS 6
+
+/* Foldery Prefs obu odtwarzaczy. Shockwave 12 używa LocalLow; pozostałe dwa
+ * położenia to zapas, gdyby jakaś wersja odtwarzacza zapisywała gdzie indziej. */
+static int pref_dirs(wchar_t dirs[PREF_DIRS][MAX_PATH], BOOL *primary)
+{
+    wchar_t bases[3][MAX_PATH];
+    int nb = 0;
+    PWSTR low = NULL;
+    if (SUCCEEDED(SHGetKnownFolderPath(&FOLDERID_LocalAppDataLow, 0, NULL, &low))) {
+        lstrcpynW(bases[nb++], low, MAX_PATH);
+        CoTaskMemFree(low);
+    }
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, bases[nb])))
+        nb++;
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, bases[nb])))
+        nb++;
+    static const wchar_t *players[] = {L"Adobe\\Director 12\\SPR\\Prefs", L"Adobe\\Director 12\\SPRS\\Prefs"};
+    int n = 0;
+    for (int b = 0; b < nb; b++)
+        for (int p = 0; p < 2; p++) {
+            join(dirs[n], bases[b], players[p]);
+            primary[n] = b == 0;
+            n++;
+        }
+    return n;
+}
+
+/* Czyta liczbę ze wszystkich folderów Prefs: największą albo najnowszą. */
+static BOOL pref_read(const wchar_t *name, BOOL newest, int *value)
+{
+    wchar_t dirs[PREF_DIRS][MAX_PATH];
+    BOOL primary[PREF_DIRS];
+    int n = pref_dirs(dirs, primary);
+    BOOL found = FALSE;
+    ULONGLONG best_time = 0;
+    for (int i = 0; i < n; i++) {
+        wchar_t path[MAX_PATH];
+        join(path, dirs[i], name);
+        HANDLE f = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                               OPEN_EXISTING, 0, NULL);
+        if (f == INVALID_HANDLE_VALUE)
+            continue;
+        char buf[16] = {0};
+        DWORD got = 0;
+        FILETIME ft;
+        ReadFile(f, buf, sizeof buf - 1, &got, NULL);
+        GetFileTime(f, NULL, NULL, &ft);
+        CloseHandle(f);
+        if (buf[0] < '0' || buf[0] > '9')
+            continue;
+        int v = atoi(buf);
+        ULONGLONG t = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
+        if (!found || (newest ? t > best_time : v > *value)) {
+            *value = v;
+            best_time = t;
+            found = TRUE;
+        }
+    }
+    return found;
+}
+
+/* Zapisuje liczbę w folderach Prefs, które już istnieją, i zawsze w LocalLow. */
+static void pref_write(const wchar_t *name, int value)
+{
+    wchar_t dirs[PREF_DIRS][MAX_PATH];
+    BOOL primary[PREF_DIRS];
+    int n = pref_dirs(dirs, primary);
+    char buf[16];
+    int len = wsprintfA(buf, "%d", value);
+    for (int i = 0; i < n; i++) {
+        if (!dir_exists(dirs[i])) {
+            if (!primary[i])
+                continue;
+            SHCreateDirectoryExW(NULL, dirs[i], NULL);
+        }
+        wchar_t path[MAX_PATH];
+        join(path, dirs[i], name);
+        HANDLE f = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (f == INVALID_HANDLE_VALUE)
+            continue;
+        DWORD written;
+        WriteFile(f, buf, len, &written, NULL);
+        CloseHandle(f);
+    }
+}
+
+static int read_unlocked(void)
+{
+    int v = 1;
+    if (!pref_read(PREF_POSTEP, FALSE, &v))
+        v = 1;
+    return v < 1 ? 1 : (v > LEVELS + 1 ? LEVELS + 1 : v);
+}
+
+static int clamp_tempo(int v)
+{
+    return v < TEMPO_MIN ? TEMPO_MIN : (v > TEMPO_MAX ? TEMPO_MAX : v);
+}
+
+static int read_tempo(void)
+{
+    int v = TEMPO_DEFAULT;
+    if (!pref_read(PREF_TEMPO, TRUE, &v))
+        v = TEMPO_DEFAULT;
+    return clamp_tempo(v);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Ustawienia launchera                                                      */
 /* ------------------------------------------------------------------------- */
 
 static int ini_get(const wchar_t *key, int def)
@@ -212,10 +346,29 @@ static void ini_set(const wchar_t *key, int value)
     WritePrivateProfileStringW(L"Kubus", key, buf, g_ini);
 }
 
-static void save_settings(void)
+static int selected_level(void)
 {
     int sel = ListBox_GetCurSel(g_list);
-    ini_set(L"poziom", sel >= 0 ? sel + 1 : 1);
+    return sel < 0 ? -1 : (int)ListBox_GetItemData(g_list, sel);
+}
+
+static int tempo_value(void)
+{
+    BOOL ok = FALSE;
+    int v = (int)GetDlgItemInt(g_wnd, IDC_TEMPO, &ok, FALSE);
+    return clamp_tempo(ok ? v : TEMPO_DEFAULT);
+}
+
+static void set_tempo_value(int v)
+{
+    SendMessageW(g_tempo_spin, UDM_SETPOS32, 0, clamp_tempo(v));
+}
+
+static void save_settings(void)
+{
+    int level = selected_level();
+    ini_set(L"poziom", level >= 0 ? level + 1 : 1);
+    ini_set(L"pokaz_wszystkie", Button_GetCheck(g_show_all) == BST_CHECKED);
     ini_set(L"pelny_ekran", Button_GetCheck(g_fullscreen) == BST_CHECKED);
     ini_set(L"bez_directx7", Button_GetCheck(g_nodx7) == BST_CHECKED);
     ini_set(L"obejscie_sterownikow", Button_GetCheck(g_baddriver) == BST_CHECKED);
@@ -265,18 +418,6 @@ static void draw_picture(HDC dc, IPicture *pic, int x, int y, int w, int h)
     DeleteDC(mem);
 }
 
-static void picture_size(IPicture *pic, int *w, int *h)
-{
-    OLE_HANDLE handle = 0;
-    *w = *h = 0;
-    if (pic && SUCCEEDED(IPicture_get_Handle(pic, &handle)) && handle) {
-        BITMAP bm;
-        GetObject((HBITMAP)(UINT_PTR)handle, sizeof bm, &bm);
-        *w = bm.bmWidth;
-        *h = bm.bmHeight;
-    }
-}
-
 static HFONT make_font(int pt, int weight)
 {
     NONCLIENTMETRICSW ncm = {sizeof ncm};
@@ -288,23 +429,34 @@ static HFONT make_font(int pt, int weight)
     return CreateFontIndirectW(&lf);
 }
 
+/* Tekst na banerze: jasny, z ciemnozielonym cieniem, żeby był czytelny na zieleni */
+static void banner_text(HDC dc, const wchar_t *text, RECT r, COLORREF color)
+{
+    RECT shadow = {r.left + S(1), r.top + S(1), r.right + S(1), r.bottom + S(1)};
+    SetTextColor(dc, C_BANNER_SHADOW);
+    DrawTextW(dc, text, -1, &shadow, DT_RIGHT | DT_SINGLELINE | DT_NOPREFIX);
+    SetTextColor(dc, color);
+    DrawTextW(dc, text, -1, &r, DT_RIGHT | DT_SINGLELINE | DT_NOPREFIX);
+}
+
 /* ------------------------------------------------------------------------- */
 /* Układ okna (współrzędne dla 96 DPI, skalowane przez S())                  */
 /* ------------------------------------------------------------------------- */
 
 #define CLIENT_W 800
-#define CLIENT_H 690
+#define CLIENT_H 664
 #define BANNER_H 112
 #define LIST_X 20
-#define LIST_Y 142
+#define LIST_Y 146
 #define LIST_W 280
-#define LIST_H 360
+#define LIST_H 356
 #define PREV_X 316
-#define PREV_Y 142
+#define PREV_Y 146
 #define PREV_W 464
 #define PREV_H 348
-#define OPTS_Y 574
-#define BOTTOM_Y 650
+#define OPTS_Y 550
+#define TEMPO_X 330
+#define BOTTOM_Y 626
 
 static RECT preview_rect(void)
 {
@@ -314,7 +466,7 @@ static RECT preview_rect(void)
 
 static RECT caption_rect(void)
 {
-    RECT r = {S(PREV_X), S(PREV_Y + PREV_H + 6), S(PREV_X + PREV_W), S(OPTS_Y - 8)};
+    RECT r = {S(PREV_X), S(PREV_Y + PREV_H + 6), S(PREV_X + PREV_W), S(PREV_Y + PREV_H + 28)};
     return r;
 }
 
@@ -334,71 +486,121 @@ static void update_status(void)
     EnableWindow(g_play, g_game_dir[0] != 0);
 }
 
+static void invalidate_preview(void)
+{
+    RECT pr = preview_rect(), cap = caption_rect();
+    InvalidateRect(g_wnd, &pr, FALSE);
+    InvalidateRect(g_wnd, &cap, FALSE);
+}
+
+/* Wypełnia listę: odblokowane poziomy albo wszystkie, i zaznacza `select` (0..10) */
+static void fill_list(int select)
+{
+    BOOL all = Button_GetCheck(g_show_all) == BST_CHECKED;
+    int visible = all ? LEVELS : (g_unlocked > LEVELS ? LEVELS : g_unlocked);
+    SendMessageW(g_list, WM_SETREDRAW, FALSE, 0);
+    ListBox_ResetContent(g_list);
+    int sel_index = 0;
+    for (int i = 0; i < visible; i++) {
+        int idx = ListBox_AddString(g_list, LEVEL_INFO[i].name);
+        ListBox_SetItemData(g_list, idx, i);
+        if (i == select)
+            sel_index = idx;
+    }
+    if (select >= visible)
+        sel_index = visible - 1;
+    ListBox_SetCurSel(g_list, sel_index);
+    SendMessageW(g_list, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(g_list, NULL, TRUE);
+    invalidate_preview();
+}
+
 static void create_controls(HWND wnd)
 {
     HWND label;
     label = CreateWindowExW(0, L"STATIC", L"Wybierz poziom:", WS_CHILD | WS_VISIBLE,
-                            S(LIST_X), S(LIST_Y - 22), S(LIST_W), S(20), wnd, NULL, g_inst, NULL);
+                            S(LIST_X), S(LIST_Y - 24), S(140), S(20), wnd, NULL, g_inst, NULL);
     SendMessageW(label, WM_SETFONT, (WPARAM)g_font_bold, TRUE);
+
+    /* pole wyboru naprzeciw "Wybierz poziom:", dosunięte do prawego boku listy */
+    g_show_all = CreateWindowExW(0, L"BUTTON", L"Pokaż wszystkie",
+                                 WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_RIGHT,
+                                 S(LIST_X + LIST_W - 150), S(LIST_Y - 25), S(150), S(22),
+                                 wnd, (HMENU)IDC_SHOW_ALL, g_inst, NULL);
 
     g_list = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", NULL,
                              WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | LBS_NOTIFY |
                                  LBS_OWNERDRAWFIXED | LBS_NOINTEGRALHEIGHT,
                              S(LIST_X), S(LIST_Y), S(LIST_W), S(LIST_H),
                              wnd, (HMENU)IDC_LIST, g_inst, NULL);
-    for (int i = 0; i < LEVELS; i++)
-        ListBox_AddString(g_list, LEVEL_INFO[i].name);
 
     label = CreateWindowExW(0, L"STATIC", L"Ustawienia:", WS_CHILD | WS_VISIBLE,
-                            S(LIST_X), S(OPTS_Y - 22), S(LIST_W), S(20), wnd, NULL, g_inst, NULL);
+                            S(LIST_X), S(OPTS_Y - 24), S(LIST_W), S(20), wnd, NULL, g_inst, NULL);
     SendMessageW(label, WM_SETFONT, (WPARAM)g_font_bold, TRUE);
 
-    g_fullscreen = CreateWindowExW(0, L"BUTTON", L"Pełny ekran (bez zaznaczenia: okno 640×480)",
+    g_fullscreen = CreateWindowExW(0, L"BUTTON", L"Pełny ekran (lub okno 640×480)",
                                    WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_GROUP | BS_AUTOCHECKBOX,
-                                   S(LIST_X), S(OPTS_Y), S(540), S(20),
+                                   S(LIST_X), S(OPTS_Y), S(300), S(20),
                                    wnd, (HMENU)IDC_FULLSCREEN, g_inst, NULL);
-    g_nodx7 = CreateWindowExW(0, L"BUTTON",
-                              L"Grafika 3D przez DirectX 9 / OpenGL zamiast DirectX 7 (gdy 3D się psuje)",
+    g_nodx7 = CreateWindowExW(0, L"BUTTON", L"DirectX 9 / OpenGL zamiast DirectX 7",
                               WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
-                              S(LIST_X), S(OPTS_Y + 22), S(540), S(20),
+                              S(LIST_X), S(OPTS_Y + 22), S(300), S(20),
                               wnd, (HMENU)IDC_NODX7, g_inst, NULL);
-    g_baddriver = CreateWindowExW(0, L"BUTTON",
-                                  L"Obejście listy „złych sterowników” Shockwave 3D (np. czarny ekran na NVIDIA)",
+    g_baddriver = CreateWindowExW(0, L"BUTTON", L"Obejście Shockwave 3D",
                                   WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
-                                  S(LIST_X), S(OPTS_Y + 44), S(540), S(20),
+                                  S(LIST_X), S(OPTS_Y + 44), S(300), S(20),
                                   wnd, (HMENU)IDC_BADDRIVER, g_inst, NULL);
+
+    HWND tempo_label = CreateWindowExW(0, L"STATIC", L"Szybkość gry:", WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
+                                       S(TEMPO_X), S(OPTS_Y - 1), S(88), S(22), wnd, NULL, g_inst, NULL);
+    g_tempo = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
+                              WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_GROUP | ES_NUMBER | ES_RIGHT,
+                              S(TEMPO_X + 90), S(OPTS_Y - 1), S(44), S(22), wnd, (HMENU)IDC_TEMPO, g_inst, NULL);
+    SendMessageW(g_tempo, EM_SETLIMITTEXT, 2, 0);
+    g_tempo_spin = CreateWindowExW(0, UPDOWN_CLASSW, NULL,
+                                   WS_CHILD | WS_VISIBLE | UDS_SETBUDDYINT | UDS_ALIGNRIGHT |
+                                       UDS_ARROWKEYS | UDS_NOTHOUSANDS,
+                                   0, 0, 0, 0, wnd, (HMENU)IDC_TEMPO_SPIN, g_inst, NULL);
+    SendMessageW(g_tempo_spin, UDM_SETBUDDY, (WPARAM)g_tempo, 0);
+    SendMessageW(g_tempo_spin, UDM_SETRANGE32, TEMPO_MIN, TEMPO_MAX);
+    UDACCEL accel = {0, TEMPO_STEP};
+    SendMessageW(g_tempo_spin, UDM_SETACCEL, 1, (LPARAM)&accel);
+    HWND tempo_unit = CreateWindowExW(0, L"STATIC", L"kl./s", WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
+                                      S(TEMPO_X + 140), S(OPTS_Y - 1), S(40), S(22), wnd, NULL, g_inst, NULL);
 
     g_play = CreateWindowExW(0, L"BUTTON", L"Graj!",
                              WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_GROUP | BS_DEFPUSHBUTTON,
-                             S(580), S(OPTS_Y - 18), S(200), S(52), wnd, (HMENU)IDC_PLAY, g_inst, NULL);
+                             S(580), S(OPTS_Y - 20), S(200), S(52), wnd, (HMENU)IDC_PLAY, g_inst, NULL);
     SendMessageW(g_play, WM_SETFONT, (WPARAM)g_font_big, TRUE);
 
     g_demo = CreateWindowExW(0, L"BUTTON", L"Wersja z płyty (demo, 1 poziom)",
                              WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-                             S(580), S(OPTS_Y + 40), S(200), S(26), wnd, (HMENU)IDC_DEMO, g_inst, NULL);
+                             S(580), S(OPTS_Y + 38), S(200), S(26), wnd, (HMENU)IDC_DEMO, g_inst, NULL);
     EnableWindow(g_demo, g_demo_exe[0] != 0);
 
     g_status = CreateWindowExW(0, L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_LEFTNOWORDWRAP | SS_CENTERIMAGE,
-                               S(LIST_X), S(BOTTOM_Y + 4), S(400), S(26), wnd, (HMENU)IDC_STATUS, g_inst, NULL);
+                               S(LIST_X), S(BOTTOM_Y), S(400), S(26), wnd, (HMENU)IDC_STATUS, g_inst, NULL);
     g_install = CreateWindowExW(0, L"BUTTON", L"Zainstaluj Shockwave 12",
                                 WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON,
-                                S(424), S(BOTTOM_Y + 4), S(156), S(26), wnd, (HMENU)IDC_INSTALL_SW, g_inst, NULL);
+                                S(424), S(BOTTOM_Y), S(156), S(26), wnd, (HMENU)IDC_INSTALL_SW, g_inst, NULL);
     HWND help = CreateWindowExW(0, L"BUTTON", L"Instrukcja", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-                                S(588), S(BOTTOM_Y + 4), S(94), S(26), wnd, (HMENU)IDC_INSTRUKCJA, g_inst, NULL);
+                                S(588), S(BOTTOM_Y), S(94), S(26), wnd, (HMENU)IDC_INSTRUKCJA, g_inst, NULL);
     HWND quit = CreateWindowExW(0, L"BUTTON", L"Wyjście", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-                                S(686), S(BOTTOM_Y + 4), S(94), S(26), wnd, (HMENU)IDC_EXIT, g_inst, NULL);
+                                S(686), S(BOTTOM_Y), S(94), S(26), wnd, (HMENU)IDC_EXIT, g_inst, NULL);
 
-    HWND normal[] = {g_list, g_fullscreen, g_nodx7, g_baddriver, g_demo, g_status, g_install, help, quit};
+    HWND normal[] = {g_list, g_show_all, g_fullscreen, g_nodx7, g_baddriver, tempo_label, g_tempo,
+                     tempo_unit, g_demo, g_status, g_install, help, quit};
     for (int i = 0; i < (int)(sizeof normal / sizeof *normal); i++)
         SendMessageW(normal[i], WM_SETFONT, (WPARAM)g_font, TRUE);
 
-    int level = ini_get(L"poziom", 1);
-    if (level < 1 || level > LEVELS)
-        level = 1;
-    ListBox_SetCurSel(g_list, level - 1);
+    Button_SetCheck(g_show_all, ini_get(L"pokaz_wszystkie", 0) ? BST_CHECKED : BST_UNCHECKED);
     Button_SetCheck(g_fullscreen, ini_get(L"pelny_ekran", 1) ? BST_CHECKED : BST_UNCHECKED);
     Button_SetCheck(g_nodx7, ini_get(L"bez_directx7", 0) ? BST_CHECKED : BST_UNCHECKED);
     Button_SetCheck(g_baddriver, ini_get(L"obejscie_sterownikow", 0) ? BST_CHECKED : BST_UNCHECKED);
+    set_tempo_value(read_tempo());
+
+    g_unlocked = read_unlocked();
+    fill_list(ini_get(L"poziom", g_unlocked) - 1);
     update_status();
 }
 
@@ -411,68 +613,49 @@ static void paint(HWND wnd, HDC dc)
     RECT client;
     GetClientRect(wnd, &client);
 
-    /* Baner */
-    RECT banner = {0, 0, client.right, S(BANNER_H)};
-    HBRUSH b = CreateSolidBrush(C_BANNER);
-    FillRect(dc, &banner, b);
-    DeleteObject(b);
+    /* Baner: zielone tło z logo (jeden obraz w podwójnej rozdzielczości) */
+    draw_picture(dc, g_banner, 0, 0, client.right, S(BANNER_H) - S(4));
     RECT stripe = {0, S(BANNER_H) - S(4), client.right, S(BANNER_H)};
-    b = CreateSolidBrush(C_GOLD);
+    HBRUSH b = CreateSolidBrush(C_BANNER_STRIPE);
     FillRect(dc, &stripe, b);
     DeleteObject(b);
 
-    int lw, lh;
-    picture_size(g_logo, &lw, &lh);
-    /* logo.jpg ma podwójną rozdzielczość - rysujemy je w połowie rozmiaru */
-    if (lw)
-        draw_picture(dc, g_logo, S(20), S((BANNER_H - 4 - lh / 2) / 2), S(lw / 2), S(lh / 2));
-
     SetBkMode(dc, TRANSPARENT);
     HGDIOBJ old_font = SelectObject(dc, g_font_title);
-    SetTextColor(dc, C_BANNER_TEXT);
-    RECT t = {S(430), S(26), client.right - S(20), S(56)};
-    DrawTextW(dc, L"Fanowskie wydanie", -1, &t, DT_RIGHT | DT_SINGLELINE | DT_NOPREFIX);
+    RECT t = {S(430), S(22), client.right - S(20), S(52)};
+    banner_text(dc, L"Edycja fanowska", t, C_BANNER_TEXT);
     SelectObject(dc, g_font);
-    SetTextColor(dc, C_BANNER_DIM);
-    t.top = S(58);
-    t.bottom = S(78);
-    DrawTextW(dc, L"pełna wersja · 11 poziomów · Windows 7–11", -1, &t,
-              DT_RIGHT | DT_SINGLELINE | DT_NOPREFIX);
-    t.top = S(78);
-    t.bottom = S(98);
-    DrawTextW(dc, L"wersja " WERSJA, -1, &t, DT_RIGHT | DT_SINGLELINE | DT_NOPREFIX);
+    RECT t2 = {S(430), S(56), client.right - S(20), S(76)};
+    banner_text(dc, L"pełna wersja · 11 poziomów · Windows 10 i 11", t2, C_BANNER_DIM);
+    RECT t3 = {S(430), S(76), client.right - S(20), S(96)};
+    banner_text(dc, L"wersja " WERSJA, t3, C_BANNER_DIM);
 
     /* Podgląd poziomu */
-    int sel = ListBox_GetCurSel(g_list);
+    int level = selected_level();
     RECT pr = preview_rect();
     RECT frame = {pr.left - 1, pr.top - 1, pr.right + 1, pr.bottom + 1};
     b = CreateSolidBrush(RGB(0, 0, 0));
     FrameRect(dc, &frame, b);
     DeleteObject(b);
-    if (sel >= 0 && g_preview[sel])
-        draw_picture(dc, g_preview[sel], pr.left, pr.top, pr.right - pr.left, pr.bottom - pr.top);
+    if (level >= 0 && g_preview[level])
+        draw_picture(dc, g_preview[level], pr.left, pr.top, pr.right - pr.left, pr.bottom - pr.top);
     else
         FillRect(dc, &pr, GetSysColorBrush(COLOR_3DSHADOW));
 
     /* Podpis pod podglądem */
     RECT cap = caption_rect();
     FillRect(dc, &cap, GetSysColorBrush(COLOR_BTNFACE));
-    if (sel >= 0) {
+    if (level >= 0) {
         wchar_t line[200];
         SelectObject(dc, g_font_bold);
         SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-        _snwprintf(line, 200, L"Poziom %d z %d: %s", sel + 1, LEVELS, LEVEL_INFO[sel].name);
+        _snwprintf(line, 200, L"Poziom %d z %d: %s", level + 1, LEVELS, LEVEL_INFO[level].name);
         RECT r = cap;
-        DrawTextW(dc, line, -1, &r, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
+        DrawTextW(dc, line, -1, &r, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
         SelectObject(dc, g_font_small);
         SetTextColor(dc, GetSysColor(COLOR_GRAYTEXT));
-        RECT r2 = cap;
-        DrawTextW(dc, LEVEL_INFO[sel].world, -1, &r2, DT_RIGHT | DT_SINGLELINE | DT_NOPREFIX);
-        r.top += S(22);
-        DrawTextW(dc,
-                  L"Strzałki – ruch, spacja – skok, +/− – szybkość gry, Esc – wyjście.\n"
-                  L"Po ukończeniu poziomu „Gram dalej” od razu wczytuje następny.",
-                  -1, &r, DT_LEFT | DT_NOPREFIX | DT_WORDBREAK);
+        r = cap;
+        DrawTextW(dc, LEVEL_INFO[level].world, -1, &r, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     }
     SelectObject(dc, old_font);
 }
@@ -487,23 +670,29 @@ static void draw_list_item(const DRAWITEMSTRUCT *di)
     FillRect(dc, &r, GetSysColorBrush(selected ? COLOR_HIGHLIGHT : COLOR_WINDOW));
     SetBkMode(dc, TRANSPARENT);
 
-    int i = di->itemID;
+    int i = (int)di->itemData;
+    BOOL locked = i + 1 > g_unlocked;
+    COLORREF text = GetSysColor(selected ? COLOR_HIGHLIGHTTEXT : (locked ? COLOR_GRAYTEXT : COLOR_WINDOWTEXT));
+    COLORREF dim = selected ? GetSysColor(COLOR_HIGHLIGHTTEXT) : GetSysColor(COLOR_GRAYTEXT);
+
     wchar_t num[8];
     _snwprintf(num, 8, L"%d", i + 1);
-    HGDIOBJ old = SelectObject(dc, g_font_title);
-    SetTextColor(dc, selected ? GetSysColor(COLOR_HIGHLIGHTTEXT) : C_GOLD);
+    HGDIOBJ old = SelectObject(dc, g_font_number);
+    SetTextColor(dc, selected ? GetSysColor(COLOR_HIGHLIGHTTEXT) : (locked ? dim : C_NUMBER));
     RECT rn = {r.left + S(4), r.top, r.left + S(36), r.bottom};
     DrawTextW(dc, num, -1, &rn, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(dc, g_font_bold);
-    SetTextColor(dc, GetSysColor(selected ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
+    SetTextColor(dc, text);
     RECT rt = {r.left + S(42), r.top + S(2), r.right - S(4), r.top + (r.bottom - r.top) / 2 + S(1)};
     DrawTextW(dc, LEVEL_INFO[i].name, -1, &rt, DT_LEFT | DT_BOTTOM | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
     SelectObject(dc, g_font_small);
-    SetTextColor(dc, selected ? GetSysColor(COLOR_HIGHLIGHTTEXT) : GetSysColor(COLOR_GRAYTEXT));
+    SetTextColor(dc, dim);
     RECT rw = {r.left + S(42), rt.bottom, r.right - S(4), r.bottom - S(2)};
-    const wchar_t *missing = g_level_file[i][0] ? LEVEL_INFO[i].world : L"brak pliku poziomu!";
-    DrawTextW(dc, missing, -1, &rw, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+    const wchar_t *sub = !g_level_file[i][0] ? L"brak pliku poziomu!"
+                         : locked            ? L"jeszcze nieodblokowany"
+                                             : LEVEL_INFO[i].world;
+    DrawTextW(dc, sub, -1, &rw, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
     SelectObject(dc, old);
 
     if (di->itemState & ODS_FOCUS)
@@ -597,10 +786,10 @@ static BOOL install_shockwave(void)
 
 static void play(void)
 {
-    int sel = ListBox_GetCurSel(g_list);
-    if (sel < 0 || !g_game_dir[0])
+    int level = selected_level();
+    if (level < 0 || !g_game_dir[0])
         return;
-    if (!g_level_file[sel][0]) {
+    if (!g_level_file[level][0]) {
         MessageBoxW(g_wnd, L"Brakuje pliku tego poziomu w folderze z grą.", L"Kubuś i Wehikuł Czasu", MB_ICONWARNING);
         return;
     }
@@ -614,11 +803,14 @@ static void play(void)
             return;
     }
     save_settings();
+    int tempo = tempo_value();
+    set_tempo_value(tempo);
+    pref_write(PREF_TEMPO, tempo);
 
     BOOL full = Button_GetCheck(g_fullscreen) == BST_CHECKED;
     wchar_t exe[MAX_PATH], args[MAX_PATH * 2];
     join(exe, g_game_dir, full ? L"SPRS.exe" : L"SPR.exe");
-    _snwprintf(args, MAX_PATH * 2, L"\"%s\"%s%s", g_level_file[sel],
+    _snwprintf(args, MAX_PATH * 2, L"\"%s\"%s%s", g_level_file[level],
                Button_GetCheck(g_nodx7) == BST_CHECKED ? L" " FLAG_NO_DX7 : L"",
                Button_GetCheck(g_baddriver) == BST_CHECKED ? L" " FLAG_BAD_DRIVER : L"");
     args[MAX_PATH * 2 - 1] = 0;
@@ -638,9 +830,21 @@ static void play_demo(void)
     run_and_hide(g_demo_exe, NULL, dir);
 }
 
+/* Po zamknięciu gry: nowe poziomy odblokowane przez grę i tempo zmienione klawiszami */
+static void game_ended(void)
+{
+    int before = g_unlocked;
+    g_unlocked = read_unlocked();
+    int select = selected_level();
+    if (g_unlocked > before)
+        select = (g_unlocked > LEVELS ? LEVELS : g_unlocked) - 1;
+    fill_list(select);
+    set_tempo_value(read_tempo());
+}
+
 static void open_help(void)
 {
-    static const wchar_t *docs[] = {L"CZYTAJ_MNIE.txt", L"..\\CZYTAJ_MNIE.txt", L"..\\README.md"};
+    static const wchar_t *docs[] = {L"CZYTAJ_MNIE.txt", L"..\\CZYTAJ_MNIE.txt", L"..\\docs\\CZYTAJ_MNIE.txt"};
     for (int i = 0; i < (int)(sizeof docs / sizeof *docs); i++) {
         wchar_t p[MAX_PATH];
         join(p, g_exe_dir, docs[i]);
@@ -669,8 +873,7 @@ static LRESULT CALLBACK wnd_proc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp)
     case WM_MEASUREITEM: {
         MEASUREITEMSTRUCT *mi = (MEASUREITEMSTRUCT *)lp;
         if (mi->CtlID == IDC_LIST) {
-            mi->itemHeight = (LIST_H - 4) / LEVELS;
-            mi->itemHeight = S(mi->itemHeight);
+            mi->itemHeight = S((LIST_H - 4) / LEVELS);
             return TRUE;
         }
         break;
@@ -694,13 +897,17 @@ static LRESULT CALLBACK wnd_proc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp)
     case WM_COMMAND:
         switch (LOWORD(wp)) {
         case IDC_LIST:
-            if (HIWORD(wp) == LBN_SELCHANGE) {
-                RECT pr = preview_rect(), cap = caption_rect();
-                InvalidateRect(wnd, &pr, FALSE);
-                InvalidateRect(wnd, &cap, FALSE);
-            } else if (HIWORD(wp) == LBN_DBLCLK) {
+            if (HIWORD(wp) == LBN_SELCHANGE)
+                invalidate_preview();
+            else if (HIWORD(wp) == LBN_DBLCLK)
                 play();
-            }
+            return 0;
+        case IDC_SHOW_ALL:
+            fill_list(selected_level());
+            return 0;
+        case IDC_TEMPO:
+            if (HIWORD(wp) == EN_KILLFOCUS)
+                set_tempo_value(tempo_value());
             return 0;
         case IDC_PLAY:
         case IDOK:
@@ -723,6 +930,7 @@ static LRESULT CALLBACK wnd_proc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp)
         break;
 
     case WM_APP_GAME_ENDED:
+        game_ended();
         ShowWindow(wnd, SW_SHOW);
         SetForegroundWindow(wnd);
         SetFocus(g_play);
@@ -769,13 +977,13 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdline, int show)
     (void)cmdline;
     g_inst = inst;
 
-    /* Manifest deklaruje DPI-awareness; to jest zapas dla starszych systemów */
+    /* Manifest deklaruje DPI-awareness; to jest zapas */
     HMODULE user32 = GetModuleHandleW(L"user32.dll");
     BOOL(WINAPI * set_dpi_aware)(void) = (BOOL(WINAPI *)(void))GetProcAddress(user32, "SetProcessDPIAware");
     if (set_dpi_aware)
         set_dpi_aware();
 
-    INITCOMMONCONTROLSEX icc = {sizeof icc, ICC_STANDARD_CLASSES};
+    INITCOMMONCONTROLSEX icc = {sizeof icc, ICC_STANDARD_CLASSES | ICC_UPDOWN_CLASS};
     InitCommonControlsEx(&icc);
     OleInitialize(NULL);
 
@@ -789,9 +997,10 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdline, int show)
     g_font_bold = make_font(10, FW_BOLD);
     g_font_small = make_font(8, FW_NORMAL);
     g_font_big = make_font(18, FW_BOLD);
-    g_font_title = make_font(15, FW_BOLD);
+    g_font_number = make_font(15, FW_NORMAL);
+    g_font_title = make_font(16, FW_NORMAL);
 
-    g_logo = load_jpeg(IDR_LOGO);
+    g_banner = load_jpeg(IDR_BANNER);
     for (int i = 0; i < LEVELS; i++)
         g_preview[i] = load_jpeg(IDR_LEVEL1 + i);
 
@@ -840,8 +1049,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdline, int show)
     for (int i = 0; i < LEVELS; i++)
         if (g_preview[i])
             IPicture_Release(g_preview[i]);
-    if (g_logo)
-        IPicture_Release(g_logo);
+    if (g_banner)
+        IPicture_Release(g_banner);
     OleUninitialize();
     return 0;
 }
