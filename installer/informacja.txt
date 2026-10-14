@@ -15,4 +15,4 @@ Dołączone programy innych autorów:
 
 Oprogramowanie jest dostarczane „tak jak jest”, bez żadnej gwarancji.
 
-Strona projektu: https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu
+Strona projektu: https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska

@@ -32,7 +32,7 @@ BEGIN
             VALUE "FileVersion", WERSJA_STR
             VALUE "ProductVersion", WERSJA_STR
             VALUE "OriginalFilename", "Kubus.exe"
-            VALUE "Comments", "https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu"
+            VALUE "Comments", "https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska"
         END
     END
     BLOCK "VarFileInfo"

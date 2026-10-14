@@ -105,4 +105,4 @@ Dołączone programy innych autorów:
 * Adobe Shockwave Player 12.3 – oficjalny, niezmieniony instalator Adobe.
 
 Strona projektu, kod źródłowy i zgłaszanie błędów:
-https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu
+https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska

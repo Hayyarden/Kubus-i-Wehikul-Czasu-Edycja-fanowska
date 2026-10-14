@@ -32,7 +32,7 @@
 #define WERSJA L"dev"
 #endif
 
-#define REPO_URL L"https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu"
+#define REPO_URL L"https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska"
 #define ARCHIWUM_DIR L"kubus-i-wehiku-czasu-pl-pelna-wersja-demo-winnie-and-the-time-machine-full-version-demo.w\\Kubus - Wehiku Czasu Pełna Wersja"
 #define MSI_NAME L"sw_lic_full_installer.msi"
 #define FLAG_NO_DX7 L"--noDirectX7"
