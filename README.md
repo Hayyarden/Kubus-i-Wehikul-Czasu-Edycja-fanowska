@@ -12,6 +12,9 @@ przejść do kolejnego poziomu.
 To repozytorium zbiera **pełną wersję (11 poziomów)** w jednym miejscu, poprawia ją tak, żeby
 dało się w nią normalnie zagrać, i pakuje ją w instalator z wygodnym launcherem.
 
+Bazą dla tej edycji fanowskiej jest pełna wersja gry zachowana w Internet Archive:
+[Kubuś i Wehikuł Czasu – pełna wersja + demo](https://archive.org/details/kubus-i-wehiku-czasu-pl-pelna-wersja-demo-winnie-and-the-time-machine-full-version-demo.w).
+
 **[⬇ Pobierz najnowsze wydanie](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/releases/latest)** – instalator albo wersja przenośna (ZIP).
 
 > To nieoficjalny, niekomercyjny projekt fanów. Szczegóły w sekcji [Informacja prawna](#informacja-prawna).
@@ -196,7 +199,7 @@ Dołączone programy innych autorów:
 - Flashpoint Shockwave Projector Redirector (SPR), Anthony Kleine – licencja MIT ([`pelna_wersja/SPR_LICENSE.txt`](pelna_wersja/SPR_LICENSE.txt)),
 - Adobe Shockwave Player 12.3 – oficjalny, niezmieniony instalator Adobe (`sw_lic_full_installer.msi`).
 
-Podziękowania dla osoby, która zachowała pełną wersję i udostępniła ją w Internet Archive, oraz
+Podziękowania dla osoby, która zachowała pełną wersję i udostępniła ją w [Internet Archive](https://archive.org/details/kubus-i-wehiku-czasu-pl-pelna-wersja-demo-winnie-and-the-time-machine-full-version-demo.w) (baza tej edycji), oraz
 dla twórców projektu [Flashpoint](https://flashpointarchive.org/).
 
 ## English summary
