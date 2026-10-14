@@ -1,12 +1,13 @@
 # Buduje launcher, paczkę ZIP i instalator.
 # - ręcznie (Actions → Wydanie → Run workflow): pliki do pobrania jako artefakt,
-# - po wypchnięciu tagu v* (np. git tag v1.0 && git push origin v1.0): dodatkowo
-#   szkic wydania (draft) na GitHubie - wystarczy go przejrzeć i opublikować.
+# - po wypchnięciu tagu z numerem wersji (np. git tag v1.0 albo 1.0, potem git push
+#   origin <tag>): dodatkowo szkic wydania (draft) na GitHubie - wystarczy go przejrzeć
+#   i opublikować. To samo daje ręczne uruchomienie z wybranym tagiem (Use workflow from).
 name: Wydanie
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "[0-9]*"]
   workflow_dispatch:
 
 permissions:
