@@ -423,8 +423,9 @@ static void paint(HWND wnd, HDC dc)
 
     int lw, lh;
     picture_size(g_logo, &lw, &lh);
+    /* logo.jpg ma podwójną rozdzielczość - rysujemy je w połowie rozmiaru */
     if (lw)
-        draw_picture(dc, g_logo, S(18), S(10), S(lw), S(lh));
+        draw_picture(dc, g_logo, S(20), S((BANNER_H - 4 - lh / 2) / 2), S(lw / 2), S(lh / 2));
 
     SetBkMode(dc, TRANSPARENT);
     HGDIOBJ old_font = SelectObject(dc, g_font_title);
