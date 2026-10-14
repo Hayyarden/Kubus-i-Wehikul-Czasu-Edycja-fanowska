@@ -75,7 +75,7 @@ static const struct { const wchar_t *name, *world; } LEVEL_INFO[LEVELS] = {
 
 static HINSTANCE g_inst;
 static HWND g_wnd, g_list, g_show_all, g_play, g_demo, g_status, g_install;
-static HWND g_fullscreen, g_nodx7, g_baddriver, g_tempo, g_tempo_spin;
+static HWND g_fullscreen, g_nodx7, g_baddriver, g_tempo, g_tempo_spin, g_tempo_hint;
 static HFONT g_font, g_font_bold, g_font_small, g_font_big, g_font_number, g_font_title;
 static IPicture *g_banner, *g_preview[LEVELS];
 static int g_dpi = 96;
@@ -567,6 +567,9 @@ static void create_controls(HWND wnd)
     SendMessageW(g_tempo_spin, UDM_SETACCEL, 1, (LPARAM)&accel);
     HWND tempo_unit = CreateWindowExW(0, L"STATIC", L"kl./s", WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
                                       S(TEMPO_X + 140), S(OPTS_Y - 1), S(40), S(22), wnd, NULL, g_inst, NULL);
+    g_tempo_hint = CreateWindowExW(0, L"STATIC", L"Dostosuj w grze: + / -", WS_CHILD | WS_VISIBLE,
+                                   S(TEMPO_X), S(OPTS_Y + 25), S(200), S(16), wnd, NULL, g_inst, NULL);
+    SendMessageW(g_tempo_hint, WM_SETFONT, (WPARAM)g_font_small, TRUE);
 
     g_play = CreateWindowExW(0, L"BUTTON", L"Graj!",
                              WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_GROUP | BS_DEFPUSHBUTTON,
@@ -652,10 +655,6 @@ static void paint(HWND wnd, HDC dc)
         _snwprintf(line, 200, L"Poziom %d z %d: %s", level + 1, LEVELS, LEVEL_INFO[level].name);
         RECT r = cap;
         DrawTextW(dc, line, -1, &r, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-        SelectObject(dc, g_font_small);
-        SetTextColor(dc, GetSysColor(COLOR_GRAYTEXT));
-        r = cap;
-        DrawTextW(dc, LEVEL_INFO[level].world, -1, &r, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     }
     SelectObject(dc, old_font);
 }
@@ -892,6 +891,8 @@ static LRESULT CALLBACK wnd_proc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp)
         SetBkColor((HDC)wp, GetSysColor(COLOR_BTNFACE));
         if ((HWND)lp == g_status)
             SetTextColor((HDC)wp, g_has_shockwave ? RGB(0, 120, 40) : RGB(180, 60, 0));
+        else if ((HWND)lp == g_tempo_hint)
+            SetTextColor((HDC)wp, GetSysColor(COLOR_GRAYTEXT));
         return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
 
     case WM_COMMAND:
