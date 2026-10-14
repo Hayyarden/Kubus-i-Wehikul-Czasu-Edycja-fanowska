@@ -1,0 +1,55 @@
+# Buduje launcher, paczkę ZIP i instalator.
+# - ręcznie (Actions → Wydanie → Run workflow): pliki do pobrania jako artefakt,
+# - po wypchnięciu tagu v* (np. git tag v1.0 && git push origin v1.0): dodatkowo
+#   szkic wydania (draft) na GitHubie - wystarczy go przejrzeć i opublikować.
+name: Wydanie
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  wydanie:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Narzędzia (MinGW-w64, NSIS, zip)
+        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-i686 nsis zip
+
+      - name: Wersja
+        id: wersja
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "numer=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "numer=$(cat WERSJA)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Budowanie
+        run: tools/zbuduj_wydanie.sh "${{ steps.wersja.outputs.numer }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kubus-i-Wehikul-Czasu-${{ steps.wersja.outputs.numer }}
+          path: |
+            dist/*.zip
+            dist/*-instalator.exe
+            dist/SHA256SUMS.txt
+          compression-level: 0
+
+      - name: Szkic wydania
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Kubuś i Wehikuł Czasu ${{ steps.wersja.outputs.numer }}
+          body_path: docs/opis_wydania.md
+          draft: true
+          files: |
+            dist/*.zip
+            dist/*-instalator.exe
+            dist/SHA256SUMS.txt

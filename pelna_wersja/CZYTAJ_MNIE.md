@@ -6,6 +6,12 @@ na współczesnym Windowsie. Odtwarza je *Flashpoint Shockwave Projector Redirec
 
 ## Uruchamianie
 
+Najprościej: uruchom **`Kubus.exe`** (launcher z listą poziomów, podglądem i ustawieniami).
+Sam sprawdzi, czy jest Shockwave Player 12, i w razie potrzeby go zainstaluje. Gotowy
+instalator i wersja ZIP są w wydaniach projektu – patrz `README.md` w katalogu głównym.
+
+Zapasowo działa też skrypt `Graj.cmd`:
+
 1. Skopiuj cały folder `pelna_wersja` na dysk.
 2. Uruchom **`Graj.cmd`**.
    * Przy pierwszym uruchomieniu skrypt sprawdzi, czy masz Shockwave Player 12.
@@ -54,11 +60,12 @@ czarny ekran.
 
 * **Czarny ekran albo brak 3D na kartach NVIDIA** – SPR ma przełącznik
   `--bugfixShockwave3DBadDriverList` (poprawka listy „złych sterowników” Shockwave 3D).
-  Dopisz go w `Graj.cmd` w linii `start "" /wait "%PLAYER%" "%FILE%"` na końcu.
+  W launcherze to opcja „Obejście listy złych sterowników”. W `Graj.cmd` dopisz go
+  w linii `start "" /wait "%PLAYER%" "%FILE%"` na końcu.
   Pod Wine ten przełącznik dawał czarny ekran, dlatego nie jest włączony domyślnie.
 * **Problemy z grafiką 3D na Windows 10/11** – drugi przełącznik SPR, `--noDirectX7`,
-  przestawia Shockwave 3D z DirectX 7 na DirectX 9 albo OpenGL. Dopisuje się go
-  w tym samym miejscu.
+  przestawia Shockwave 3D z DirectX 7 na DirectX 9 albo OpenGL. W launcherze to opcja
+  „Grafika 3D przez DirectX 9 / OpenGL”, w `Graj.cmd` dopisuje się go w tym samym miejscu.
 
 ## Jak to było sprawdzane
 
