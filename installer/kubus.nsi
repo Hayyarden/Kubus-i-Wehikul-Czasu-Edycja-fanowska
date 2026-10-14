@@ -1,7 +1,7 @@
 ; Instalator "Kubuś i Wehikuł Czasu" - edycja fanowska.
 ; Budowany przez tools/zbuduj_wydanie.sh (NSIS 3, makensis), np.:
 ;   makensis -DWERSJA=1.0 -DSRC="dist/Kubus i Wehikul Czasu" -DOUT=dist/instalator.exe installer/kubus.nsi
-; SRC to przygotowany folder gry: Kubus.exe, CZYTAJ_MNIE.txt, dane\, demo\.
+; SRC to przygotowany folder gry: Kubus.exe, README.txt, dane\, demo\.
 
 Unicode true
 SetCompressor /SOLID lzma
@@ -77,7 +77,7 @@ VIAddVersionKey /LANG=1045 "LegalCopyright" "Gra: MGD Sp. z o.o. / VERUM.COM. Ed
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Uruchom grę"
 !define MUI_FINISHPAGE_RUN_FUNCTION UruchomGre
-!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\CZYTAJ_MNIE.txt"
+!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.txt"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Pokaż instrukcję"
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
 !define MUI_FINISHPAGE_LINK "Strona projektu na GitHubie"
@@ -106,7 +106,8 @@ Section "Gra – pełna wersja (11 poziomów)" SecGra
   SectionIn RO
   SetOutPath "$INSTDIR"
   File "${SRC}\Kubus.exe"
-  File "${SRC}\CZYTAJ_MNIE.txt"
+  File "${SRC}\README.txt"
+  Delete "$INSTDIR\CZYTAJ_MNIE.txt"   ; nazwa z wersji 1.0
   SetOutPath "$INSTDIR\dane"
   File /r "${SRC}\dane\*.*"
 
@@ -116,7 +117,7 @@ Section "Gra – pełna wersja (11 poziomów)" SecGra
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\${NAZWA}"
   CreateShortcut "$SMPROGRAMS\${NAZWA}\${NAZWA}.lnk" "$INSTDIR\Kubus.exe" "" "$INSTDIR\Kubus.exe" 0
-  CreateShortcut "$SMPROGRAMS\${NAZWA}\Instrukcja.lnk" "$INSTDIR\CZYTAJ_MNIE.txt"
+  CreateShortcut "$SMPROGRAMS\${NAZWA}\Instrukcja.lnk" "$INSTDIR\README.txt"
   CreateShortcut "$SMPROGRAMS\${NAZWA}\Odinstaluj.lnk" "$INSTDIR\Odinstaluj.exe"
 
   WriteRegStr HKLM "${KLUCZ_GRY}" "Folder" "$INSTDIR"
@@ -192,6 +193,7 @@ Section "Uninstall"
   RMDir /r "$SMPROGRAMS\${NAZWA}"
 
   Delete "$INSTDIR\Kubus.exe"
+  Delete "$INSTDIR\README.txt"
   Delete "$INSTDIR\CZYTAJ_MNIE.txt"
   Delete "$INSTDIR\Odinstaluj.exe"
   RMDir /r "$INSTDIR\dane"

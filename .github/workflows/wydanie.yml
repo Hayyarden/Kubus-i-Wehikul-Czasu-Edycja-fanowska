@@ -40,7 +40,6 @@ jobs:
           path: |
             dist/*.zip
             dist/*-instalator.exe
-            dist/SHA256SUMS.txt
           compression-level: 0
 
       - name: Szkic wydania
@@ -53,4 +52,3 @@ jobs:
           files: |
             dist/*.zip
             dist/*-instalator.exe
-            dist/SHA256SUMS.txt

@@ -26,7 +26,6 @@ dało się w nią normalnie zagrać, i pakuje ją w instalator z wygodnym launch
 - [Gdy coś nie działa](#gdy-coś-nie-działa)
 - [Co zostało poprawione](#co-zostało-poprawione)
 - [Zrzuty ekranu](#zrzuty-ekranu)
-- [Dla twórców: budowanie i struktura repozytorium](#dla-twórców)
 - [Stan testów](#stan-testów)
 - [Informacja prawna](#informacja-prawna)
 - [English summary](#english-summary)
@@ -145,8 +144,8 @@ działała na współczesnym komputerze.
 | Malutki obraz | Powiększenie do największego prostokąta 4:3 na ekranie |
 | Przy skoku na wyższą platformę Kubuś „wybijał się drugi raz” | Łuk skoku jest liczony od wysokości, z której Kubuś się wybił |
 
-Szczegółowy opis zmian: [`pelna_wersja/CZYTAJ_MNIE.md`](pelna_wersja/CZYTAJ_MNIE.md) i
-[`poprawka/CZYTAJ_MNIE.md`](poprawka/CZYTAJ_MNIE.md).
+Szczegółowy opis zmian: [`pelna_wersja/README.md`](pelna_wersja/README.md) i
+[`poprawka/README.md`](poprawka/README.md).
 
 ## Zrzuty ekranu
 
@@ -168,57 +167,6 @@ Szczegółowy opis zmian: [`pelna_wersja/CZYTAJ_MNIE.md`](pelna_wersja/CZYTAJ_MN
   </tr>
 </table>
 
-## Dla twórców
-
-### Struktura repozytorium
-
-| Ścieżka | Zawartość |
-|---|---|
-| `pelna_wersja/` | Poprawione poziomy `.dcr`, odtwarzacz SPR, `Kubus.exe` (launcher) i `Graj.cmd` |
-| `poprawka/` | Poprawiony `Kuba.exe` z płyty CD (wersja demo, 1 poziom) |
-| `launcher/` | Kod launchera (C, Win32) i jego grafiki |
-| `installer/` | Skrypt instalatora NSIS i jego grafiki |
-| `tools/kubus_dcr_patch.py` | Patcher poziomów pełnej wersji (Python 3, bez zależności) |
-| `tools/kubus_patch.py` | Patcher `Kuba.exe` z płyty |
-| `tools/zbuduj_wydanie.sh` | Buduje ZIP i instalator do `dist/` |
-| `docs/` | Instrukcja dla graczy (`CZYTAJ_MNIE.txt`), opis wydania, zrzuty ekranu |
-| `Kubus3D/` | Oryginalna instalacja z płyty CD (niezmieniona) |
-| `kubus-i-wehiku-czasu-…/` | Oryginalne archiwum z Internet Archive: niezmienione poziomy, instalator Shockwave 12.3, warianty SPR, zdjęcia płyty |
-
-### Budowanie
-
-Wszystko buduje się na Linuksie (albo w WSL):
-
-```sh
-sudo apt install gcc-mingw-w64-i686 nsis zip
-
-launcher/build.sh              # tylko launcher -> pelna_wersja/Kubus.exe
-tools/zbuduj_wydanie.sh        # launcher + dist/*.zip + dist/*-instalator.exe + SHA256SUMS.txt
-tools/zbuduj_wydanie.sh 1.1    # to samo z inną wersją (domyślnie z pliku WERSJA)
-```
-
-Poziomy i `Kuba.exe` generuje się z oryginałów patcherami:
-
-```sh
-python tools/kubus_dcr_patch.py "<folder z oryginalnymi .dcr>" pelna_wersja --fps 30
-python tools/kubus_patch.py Kubus3D/Kuba.exe poprawka/Kuba.exe --fps 30
-```
-
-### Nowe wydanie na GitHubie
-
-Workflow [`.github/workflows/wydanie.yml`](.github/workflows/wydanie.yml) buduje paczki na
-GitHub Actions:
-
-```sh
-echo 1.1 > WERSJA            # opcjonalnie, numer i tak bierze się z tagu
-git tag v1.1
-git push origin v1.1
-```
-
-Po kilku minutach w zakładce **Releases** pojawi się szkic wydania (draft) z instalatorem, ZIP-em
-i sumami kontrolnymi. Wystarczy go przejrzeć i kliknąć **Publish**. Workflow można też uruchomić
-ręcznie (Actions → Wydanie → Run workflow), wtedy pliki trafiają do artefaktów.
-
 ## Stan testów
 
 - Launcher, instalator i deinstalator były sprawdzane pod **Wine 9** (Linux): instalacja razem
@@ -229,7 +177,7 @@ ręcznie (Actions → Wydanie → Run workflow), wtedy pliki trafiają do artefa
   zmiany z klawiszy `+`/`-`, a launcher po zamknięciu gry pokazuje nowo odblokowane poziomy.
   Zapis postępu sprawdzony na wariancie testowym poziomu (ta sama ścieżka kodu co „Gram dalej”
   i „Zakończ”), bez przechodzenia poziomu od początku do końca.
-- Poprawki gry były sprawdzane pod Wine (szczegóły w plikach `CZYTAJ_MNIE.md`).
+- Poprawki gry były sprawdzane pod Wine (szczegóły w plikach `README.md` w folderach `pelna_wersja` i `poprawka`).
 - **Na prawdziwym Windowsie całość nie była jeszcze testowana.** Jeśli zagrasz, daj znać w
   [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/issues), czy wszystko działa.
 

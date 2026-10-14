@@ -843,7 +843,7 @@ static void game_ended(void)
 
 static void open_help(void)
 {
-    static const wchar_t *docs[] = {L"CZYTAJ_MNIE.txt", L"..\\CZYTAJ_MNIE.txt", L"..\\docs\\CZYTAJ_MNIE.txt"};
+    static const wchar_t *docs[] = {L"README.txt", L"..\\README.txt", L"..\\docs\\README.txt"};
     for (int i = 0; i < (int)(sizeof docs / sizeof *docs); i++) {
         wchar_t p[MAX_PATH];
         join(p, g_exe_dir, docs[i]);
