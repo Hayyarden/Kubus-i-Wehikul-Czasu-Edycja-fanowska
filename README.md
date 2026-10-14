@@ -49,10 +49,10 @@ Wymagania: Windows 10 lub 11, karta graficzna z obsługą 3D.
 
 ### Instalator (polecany)
 
-1. Pobierz `Kubus-i-Wehikul-Czasu-<wersja>-instalator.exe` z
-   [wydań](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/releases/latest) i uruchom go.
-2. Zostaw zaznaczony **Adobe Shockwave Player 12.3**, jeśli go nie masz. Bez niego pełna wersja
-   nie ruszy. Instalator dołącza oryginalny, niezmieniony instalator Adobe.
+1. a) Pobierz i wypakuj paczkę `Kubus-i-Wehikul-Czasu-1.0.zip` z
+   [Releases](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/releases/latest) i uruchom `Kubus-i-Wehikul-Czasu-<wersja>-instalator.exe`.
+   b) Plik .exe nie jest sygnowany, dlatego najpewniej uruchomi się Windows Defender SmartScreen - wybierz `Więcej informacji` i `Uruchom mimo to`.
+2. Zostaw zaznaczony **Adobe Shockwave Player 12.3**, jeśli nie jest u Ciebie zainstalowany. Instalator dołącza instalator Adobe.
 3. Uruchom grę skrótem „Kubuś i Wehikuł Czasu”, wybierz poziom i kliknij **Graj!**
 
 Instalator dodaje skróty w Menu Start i na pulpicie oraz wpis w „Aplikacje i funkcje”, więc grę
