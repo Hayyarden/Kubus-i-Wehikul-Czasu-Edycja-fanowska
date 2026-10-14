@@ -42,7 +42,6 @@ przedmioty: miecz Ekskalibur, Oko Smoka i Amulet Słońca.
 | Świątynia słońca | 8. Hol świątyni · 9. Trzy próby |
 | Miasto przyszłości | 10. Hol laboratorium · 11. Pokój badań |
 
-Grę wykonało studio VERUM.COM, a na okładce widnieje © MGD Sp. z o.o.
 
 ## Jak zagrać
 
@@ -184,12 +183,13 @@ Szczegółowy opis zmian: [`pelna_wersja/README.md`](pelna_wersja/README.md) i
 ## Informacja prawna
 
 - To **nieoficjalne, niekomercyjne wydanie fanowskie** gry, która od lat nie jest sprzedawana
-  ani wspierana (abandonware). Ma pozwolić zagrać w nią na współczesnym komputerze.
+  ani wspierana (abandonware). Jej celem jest jedynie umożliwienie zagrania w ten klasyk sprzed ponad dwóch dekad na nowoczesnym sprzęcie.
 - Prawa do gry, postaci i znaków należą do ich właścicieli (na okładce: © MGD Sp. z o.o.,
-  projekt i wykonanie VERUM.COM). Projekt nie jest z nimi związany ani przez nich wspierany.
+  projekt i wykonanie VERUM.COM). Obecnie właścicielem praw do marki Kubuś jest Grupa Maspex sp. z o.o.
+  Projekt nie jest z nią związany ani przez nich wspierany.
 - Wydanie jest darmowe. Nie wolno go sprzedawać.
-- **Jeśli jesteś właścicielem praw** i chcesz, żeby to wydanie zostało usunięte, załóż
-  [zgłoszenie](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/issues). Zostanie usunięte.
+- **Jeśli jesteś właścicielem praw** i chcesz się skontaktować, załóż ticket w
+  [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/issues). 
 
 Dołączone programy innych autorów:
 
