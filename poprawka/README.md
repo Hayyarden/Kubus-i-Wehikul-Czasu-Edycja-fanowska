@@ -58,4 +58,4 @@ Poprawka skoku była sprawdzana tylko na płaskim terenie (skok w miejscu i w bi
 jak w oryginale). Lądowania na platformie nie dało się odtworzyć w teście, więc daj znać,
 czy problem zniknął.
 
-Pełna wersja (11 poziomów) jest w folderze `pelna_wersja` – patrz tamtejsze `CZYTAJ_MNIE.md`.
+Pełna wersja (11 poziomów) jest w folderze `pelna_wersja` – patrz tamtejsze `README.md`.
