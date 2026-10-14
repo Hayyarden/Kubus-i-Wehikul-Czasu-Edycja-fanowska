@@ -4,21 +4,21 @@
   <img src="docs/zrzuty/launcher1.png" alt="Launcher gry Kubuś i Wehikuł Czasu: lista odblokowanych poziomów, podgląd, ustawienia i przycisk Graj" width="720">
 </p>
 
-Polska przygodowa gra 3D z Kubusiem, wydana na płycie CD (wersja demo z jednym poziomem),
-a kolejne etapy pobierało się ze strony kubus.pl. Strona już nie działa, a gra na współczesnym
-Windowsie działała kilka razy za szybko, zmieniała rozdzielczość monitora i nie dało się
+**Kubuś i Wehikuł Czasu (2005)** to polska przygodowa gra 3D z Kubusiem, wydana na płycie CD (wersja demo z jednym poziomem),
+gdzie kolejne etapy pobierało się ze strony kubus.pl. Strona już nie działa, a gra na współczesnym
+Windowsie działała za szybko (Kubuś teleportował się po ekranie), zmieniała rozdzielczość monitora i nie dało się
 przejść do kolejnego poziomu.
 
 To repozytorium zbiera **pełną wersję (11 poziomów)** w jednym miejscu, poprawia ją tak, żeby
 dało się w nią normalnie zagrać, i pakuje ją w instalator z wygodnym launcherem.
 
-Bazą dla tej edycji fanowskiej jest pełna wersja gry zachowana w Internet Archive:
-[Kubuś i Wehikuł Czasu – pełna wersja + demo](https://archive.org/details/kubus-i-wehiku-czasu-pl-pelna-wersja-demo-winnie-and-the-time-machine-full-version-demo.w).
 
 **[⬇ Pobierz najnowsze wydanie](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/releases/latest)** – instalator albo wersja przenośna (ZIP).
 
 > To nieoficjalny, niekomercyjny projekt fanów. Szczegóły w sekcji [Informacja prawna](#informacja-prawna).
 
+Bazą dla tej edycji fanowskiej jest pełna wersja gry zachowana w Internet Archive:
+[Kubuś i Wehikuł Czasu – pełna wersja + demo](https://archive.org/details/kubus-i-wehiku-czasu-pl-pelna-wersja-demo-winnie-and-the-time-machine-full-version-demo.w).
 ---
 
 ## Spis treści
