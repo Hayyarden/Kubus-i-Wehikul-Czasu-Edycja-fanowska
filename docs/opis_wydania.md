@@ -12,6 +12,6 @@ projektu (całe repozytorium, ok. 300 MB), a nie gra do zainstalowania. Do grani
 
 Pliki nie są podpisane cyfrowo, więc Windows SmartScreen może ostrzec przed nieznanym programem – kliknij „Więcej informacji” → „Uruchom mimo to”.
 
-Szczegóły, sterowanie i rozwiązywanie problemów: [README](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu#readme).
+Szczegóły, sterowanie i rozwiązywanie problemów: [README](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska#readme).
 
 To nieoficjalne, niekomercyjne wydanie fanowskie. Prawa do gry należą do ich właścicieli (© MGD Sp. z o.o., VERUM.COM).

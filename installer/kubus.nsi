@@ -26,7 +26,7 @@ SetCompressor /SOLID lzma
 !define NAZWA "Kubuś i Wehikuł Czasu"
 !define KLUCZ_ODINSTALUJ "Software\Microsoft\Windows\CurrentVersion\Uninstall\KubusIWehikulCzasu"
 !define KLUCZ_GRY "Software\Kubus i Wehikul Czasu"
-!define REPO "https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu"
+!define REPO "https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska"
 !define MSI "sw_lic_full_installer.msi"
 
 Name "${NAZWA}"

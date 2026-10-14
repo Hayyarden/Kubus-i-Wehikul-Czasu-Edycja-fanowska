@@ -12,7 +12,7 @@ przejść do kolejnego poziomu.
 To repozytorium zbiera **pełną wersję (11 poziomów)** w jednym miejscu, poprawia ją tak, żeby
 dało się w nią normalnie zagrać, i pakuje ją w instalator z wygodnym launcherem.
 
-**[⬇ Pobierz najnowsze wydanie](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/releases/latest)** – instalator albo wersja przenośna (ZIP).
+**[⬇ Pobierz najnowsze wydanie](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/releases/latest)** – instalator albo wersja przenośna (ZIP).
 
 > To nieoficjalny, niekomercyjny projekt fanów. Szczegóły w sekcji [Informacja prawna](#informacja-prawna).
 
@@ -50,7 +50,7 @@ Wymagania: Windows 10 lub 11, karta graficzna z obsługą 3D.
 ### Instalator (polecany)
 
 1. Pobierz i wypakuj paczkę `Kubus-i-Wehikul-Czasu-1.0.zip` z
-   [Releases](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/releases/latest) i uruchom `Kubus-i-Wehikul-Czasu-<wersja>-instalator.exe`.
+   [Releases](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/releases/latest) i uruchom `Kubus-i-Wehikul-Czasu-<wersja>-instalator.exe`.
 2. Plik .exe nie jest sygnowany, dlatego najpewniej uruchomi się Windows Defender SmartScreen - wybierz `Więcej informacji` i `Uruchom mimo to`.
 3. Zostaw zaznaczony **Adobe Shockwave Player 12.3**, jeśli nie jest u Ciebie zainstalowany. Instalator dołącza instalator Adobe.
 4. Uruchom grę skrótem „Kubuś i Wehikuł Czasu”, wybierz poziom i kliknij **Graj!**
@@ -116,7 +116,7 @@ ustawienia (np. „Uruchom w rozdzielczości 640×480”) mogą przeszkadzać.
 Zapasowy sposób uruchamiania bez launchera to `Graj.cmd` w folderze z poziomami (menu w konsoli,
 `Graj.cmd 5 okno` uruchamia poziom 5 w oknie).
 
-Jeśli trafisz na błąd, [zgłoś go](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/issues).
+Jeśli trafisz na błąd, [zgłoś go](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/issues).
 Napisz, jaką masz wersję Windowsa i kartę graficzną.
 
 ## Co zostało poprawione
@@ -178,7 +178,7 @@ Szczegółowy opis zmian: [`pelna_wersja/README.md`](pelna_wersja/README.md) i
   i „Zakończ”), bez przechodzenia poziomu od początku do końca.
 - Poprawki gry były sprawdzane pod Wine (szczegóły w plikach `README.md` w folderach `pelna_wersja` i `poprawka`).
 - **Na prawdziwym Windowsie całość nie była jeszcze testowana.** Jeśli zagrasz, daj znać w
-  [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/issues), czy wszystko działa.
+  [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/issues), czy wszystko działa.
 
 ## Informacja prawna
 
@@ -189,7 +189,7 @@ Szczegółowy opis zmian: [`pelna_wersja/README.md`](pelna_wersja/README.md) i
   Projekt nie jest z nią związany ani przez nich wspierany.
 - Wydanie jest darmowe. Nie wolno go sprzedawać.
 - **Jeśli jesteś właścicielem praw** i chcesz się skontaktować, załóż ticket w
-  [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/issues). 
+  [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/issues). 
 
 Dołączone programy innych autorów:
 
@@ -210,7 +210,7 @@ Windows. It ships with a launcher and an installer, and fixes the original's pro
 running several times too fast (movement is per-frame), forced 640×480 display mode,
 level-to-level transitions that pointed at the dead website, and two gameplay bugs. Download the
 installer or the portable ZIP from
-[Releases](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu/releases/latest). Adobe Shockwave
+[Releases](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/releases/latest). Adobe Shockwave
 Player 12 is required and is bundled. The game itself is in Polish.
 
 All rights to the game belong to their respective owners. If you hold the rights and want this
