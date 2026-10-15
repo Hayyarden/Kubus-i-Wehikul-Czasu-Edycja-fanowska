@@ -172,7 +172,7 @@ Szczegółowy opis zmian: [`pelna_wersja/README.md`](pelna_wersja/README.md) i
 
 ## Stan testów
 
-- Launcher, instalator i deinstalator były sprawdzane pod **Wine 9** (Linux): instalacja razem
+- Launcher, instalator i deinstalator były sprawdzane pod **Windows 10** i **Windows 11**, oraz na **Wine 9** (Linux): instalacja razem
   z Shockwave 12.3, skróty, start poziomów na pełnym ekranie i w oknie, oba przełączniki
   grafiki 3D, wersja z płyty, powrót do launchera po zamknięciu gry, zapamiętywanie ustawień,
   czyste odinstalowanie.
@@ -181,7 +181,7 @@ Szczegółowy opis zmian: [`pelna_wersja/README.md`](pelna_wersja/README.md) i
   Zapis postępu sprawdzony na wariancie testowym poziomu (ta sama ścieżka kodu co „Gram dalej”
   i „Zakończ”), bez przechodzenia poziomu od początku do końca.
 - Poprawki gry były sprawdzane pod Wine (szczegóły w plikach `README.md` w folderach `pelna_wersja` i `poprawka`).
-- **Na prawdziwym Windowsie całość nie była jeszcze testowana.** Jeśli zagrasz, daj znać w
+- Jeśli zagrasz i napotkasz buga lub inny problem, daj znać w
   [Issues](https://github.com/Hayyarden/Kubus-i-Wehikul-Czasu-Edycja-fanowska/issues), czy wszystko działa.
 
 ## Informacja prawna
